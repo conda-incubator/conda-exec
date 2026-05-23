@@ -48,4 +48,7 @@ html_context = {
     "doc_path": "docs",
 }
 
+html_static_path = ["_static"]
+html_css_files = ["css/custom.css"]
+
 html_baseurl = "https://jezdez.github.io/conda-exec/"
