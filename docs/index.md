@@ -102,26 +102,27 @@ quickstart
 :hidden:
 :caption: Tutorials
 
-tutorials/index
+First run <tutorials/first-run>
 ```
 
 ```{toctree}
 :hidden:
 :caption: How-to guides
 
-how-to/index
+Manage cache <how-to/manage-cache>
 ```
 
 ```{toctree}
 :hidden:
 :caption: Reference
 
-reference/index
+CLI <reference/cli>
+Cache layout <reference/cache-layout>
 ```
 
 ```{toctree}
 :hidden:
 :caption: Explanation
 
-explanation/index
+Architecture <explanation/architecture>
 ```

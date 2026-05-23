@@ -1,9 +1,19 @@
+---
+orphan: true
+---
+
 # Tutorials
 
 Step-by-step guides for learning conda-exec.
 
-```{toctree}
-:maxdepth: 1
+::::{grid} 1 1 2 2
+:gutter: 3
 
-first-run
-```
+:::{grid-item-card} {octicon}`rocket` First run
+:link: first-run
+:link-type: doc
+
+Get started with conda-exec by running your first command.
+:::
+
+::::

@@ -1,9 +1,19 @@
+---
+orphan: true
+---
+
 # Explanation
 
 Background and design decisions.
 
-```{toctree}
-:maxdepth: 1
+::::{grid} 1 1 2 2
+:gutter: 3
 
-architecture
-```
+:::{grid-item-card} {octicon}`cpu` Architecture
+:link: architecture
+:link-type: doc
+
+How conda-exec works under the hood.
+:::
+
+::::

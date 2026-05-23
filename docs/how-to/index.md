@@ -1,9 +1,19 @@
+---
+orphan: true
+---
+
 # How-to guides
 
 Task-oriented guides for specific use cases.
 
-```{toctree}
-:maxdepth: 1
+::::{grid} 1 1 2 2
+:gutter: 3
 
-manage-cache
-```
+:::{grid-item-card} {octicon}`database` Manage cache
+:link: manage-cache
+:link-type: doc
+
+Control the conda-exec package cache.
+:::
+
+::::
