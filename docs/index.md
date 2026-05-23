@@ -116,8 +116,7 @@ how-to/index
 :hidden:
 :caption: Reference
 
-reference/cli
-reference/cache-layout
+reference/index
 ```
 
 ```{toctree}
