@@ -18,7 +18,7 @@ log = logging.getLogger(__name__)
 
 MAX_ENV_NAME_LEN = 200
 
-_SAFE_KEY_RE = re.compile(r"^[a-zA-Z0-9_][a-zA-Z0-9_.+-]*--[0-9a-f]+$")
+SAFE_KEY_RE = re.compile(r"^[a-zA-Z0-9_][a-zA-Z0-9_.+-]*--[0-9a-f]+$")
 
 
 @dataclass(frozen=True)
@@ -51,9 +51,9 @@ class CacheManager:
         channels: list[str],
     ) -> Path:
         """Return a cached prefix, creating it if it does not exist."""
-        prefix = self._prefix_for(key)
+        prefix = self.prefix_for(key)
         if prefix.is_dir() and (prefix / "conda-meta").is_dir():
-            self._touch(prefix)
+            self.touch(prefix)
             return prefix
         return self.create(key, specs, channels)
 
@@ -78,7 +78,7 @@ class CacheManager:
         if solver_backend is None:
             raise SolverNotAvailableError
 
-        final_prefix = self._prefix_for(key)
+        final_prefix = self.prefix_for(key)
         tmp_prefix = self.envs_dir / f".tmp-{key}-{os.getpid()}"
         self.envs_dir.mkdir(parents=True, exist_ok=True)
         tmp_prefix.mkdir(exist_ok=True)
@@ -113,7 +113,7 @@ class CacheManager:
 
     def exists(self, key: str) -> bool:
         """Check if a cached environment exists (fast stat-only check)."""
-        prefix = self._prefix_for(key)
+        prefix = self.prefix_for(key)
         return prefix.is_dir() and (prefix / "conda-meta").is_dir()
 
     def remove(self, key: str) -> None:
@@ -121,7 +121,7 @@ class CacheManager:
         from conda.core.envs_manager import unregister_env
         from conda.gateways.disk.delete import rm_rf
 
-        prefix = self._prefix_for(key)
+        prefix = self.prefix_for(key)
         if prefix.exists():
             unregister_env(str(prefix))
             rm_rf(prefix)
@@ -160,10 +160,10 @@ class CacheManager:
             )
         return entries
 
-    def _prefix_for(self, key: str) -> Path:
+    def prefix_for(self, key: str) -> Path:
         if len(key) > MAX_ENV_NAME_LEN:
             raise ValueError(f"cache key too long: {len(key)} > {MAX_ENV_NAME_LEN}")
-        if not _SAFE_KEY_RE.match(key):
+        if not SAFE_KEY_RE.match(key):
             raise ValueError(f"invalid cache key: {key!r}")
         prefix = self.envs_dir / key
         resolved = prefix.resolve()
@@ -171,7 +171,7 @@ class CacheManager:
             raise ValueError(f"cache key escapes envs directory: {key!r}")
         return prefix
 
-    def _touch(self, prefix: Path) -> None:
+    def touch(self, prefix: Path) -> None:
         """Update the history file mtime for staleness tracking."""
         try:
             os.utime(prefix / "conda-meta" / "history")

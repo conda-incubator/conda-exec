@@ -18,7 +18,7 @@ def find_binary(prefix: Path, name: str) -> Path | None:
     ``Scripts/`` on Windows). On Windows, tries ``.exe``, ``.bat``,
     and ``.cmd`` extensions.
     """
-    from conda.base.constants import on_win
+    from conda.common.compat import on_win
 
     bin_dir = prefix / BIN_DIRECTORY
     if not bin_dir.is_dir():
@@ -28,12 +28,12 @@ def find_binary(prefix: Path, name: str) -> Path | None:
         for ext in (".exe", ".bat", ".cmd", ""):
             candidate = bin_dir / f"{name}{ext}"
             if candidate.is_file():
-                if _is_within_prefix(candidate, prefix):
+                if is_within_prefix(candidate, prefix):
                     return candidate
     else:
         candidate = bin_dir / name
         if candidate.is_file():
-            if _is_within_prefix(candidate, prefix):
+            if is_within_prefix(candidate, prefix):
                 return candidate
 
     return None
@@ -44,7 +44,7 @@ def discover_binaries(prefix: Path) -> list[str]:
 
     Looks in the platform-correct bin directory.
     """
-    from conda.base.constants import on_win
+    from conda.common.compat import on_win
 
     bin_dir = prefix / BIN_DIRECTORY
     if not bin_dir.is_dir():
@@ -58,16 +58,16 @@ def discover_binaries(prefix: Path) -> list[str]:
             if entry.suffix.lower() in (".exe", ".bat", ".cmd"):
                 binaries.append(entry.stem)
         else:
-            if _is_executable(entry):
+            if is_executable(entry):
                 binaries.append(entry.name)
     return binaries
 
 
-def _is_executable(path: Path) -> bool:
+def is_executable(path: Path) -> bool:
     return bool(path.stat().st_mode & (stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH))
 
 
-def _is_within_prefix(path: Path, prefix: Path) -> bool:
+def is_within_prefix(path: Path, prefix: Path) -> bool:
     """Verify a binary resolves to a path within the prefix (symlink safety)."""
     try:
         return path.resolve().is_relative_to(prefix.resolve())

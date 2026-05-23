@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import re
 
-_SAFE_TOOL_RE = re.compile(r"^[a-zA-Z0-9_][a-zA-Z0-9_.+-]*$")
+SAFE_TOOL_RE = re.compile(r"^[a-zA-Z0-9_][a-zA-Z0-9_.+-]*$")
 
 
 def validate_tool_name(tool: str) -> None:
@@ -14,7 +14,7 @@ def validate_tool_name(tool: str) -> None:
         raise ValueError("tool name cannot be empty")
     if len(tool) > 128:
         raise ValueError(f"tool name too long: {len(tool)} characters")
-    if not _SAFE_TOOL_RE.match(tool):
+    if not SAFE_TOOL_RE.match(tool):
         raise ValueError(
             f"invalid tool name: {tool!r} "
             "(must contain only alphanumeric, dash, dot, plus, underscore)"

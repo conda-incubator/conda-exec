@@ -96,7 +96,7 @@ def test_touch_updates_history_mtime(tmp_path: Path):
     time.sleep(0.05)
 
     cm = CacheManager(envs_dir=tmp_path / "envs")
-    cm._touch(prefix)
+    cm.touch(prefix)
 
     new_mtime = history.stat().st_mtime
     assert new_mtime > old_mtime
@@ -106,4 +106,4 @@ def test_cache_key_too_long(tmp_path: Path):
     cm = CacheManager(envs_dir=tmp_path)
     long_key = "a" * 201
     with pytest.raises(ValueError, match="cache key too long"):
-        cm._prefix_for(long_key)
+        cm.prefix_for(long_key)

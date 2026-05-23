@@ -16,7 +16,7 @@ from conda_exec.binaries import discover_binaries, find_binary
 @pytest.fixture()
 def unix_prefix(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     monkeypatch.setattr("conda_exec.binaries.BIN_DIRECTORY", "bin")
-    monkeypatch.setattr("conda.base.constants.on_win", False)
+    monkeypatch.setattr("conda.common.compat.on_win", False)
     prefix = tmp_path / "env"
     (prefix / "bin").mkdir(parents=True)
     return prefix
@@ -25,7 +25,7 @@ def unix_prefix(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 @pytest.fixture()
 def win_prefix(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     monkeypatch.setattr("conda_exec.binaries.BIN_DIRECTORY", "Scripts")
-    monkeypatch.setattr("conda.base.constants.on_win", True)
+    monkeypatch.setattr("conda.common.compat.on_win", True)
     prefix = tmp_path / "env"
     (prefix / "Scripts").mkdir(parents=True)
     return prefix
@@ -49,7 +49,7 @@ def test_find_binary_unix_missing(unix_prefix: Path):
 
 def test_find_binary_no_bin_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr("conda_exec.binaries.BIN_DIRECTORY", "bin")
-    monkeypatch.setattr("conda.base.constants.on_win", False)
+    monkeypatch.setattr("conda.common.compat.on_win", False)
     assert find_binary(tmp_path, "ruff") is None
 
 
@@ -83,5 +83,5 @@ def test_discover_binaries_empty(unix_prefix: Path):
 
 def test_discover_binaries_no_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr("conda_exec.binaries.BIN_DIRECTORY", "bin")
-    monkeypatch.setattr("conda.base.constants.on_win", False)
+    monkeypatch.setattr("conda.common.compat.on_win", False)
     assert discover_binaries(tmp_path) == []

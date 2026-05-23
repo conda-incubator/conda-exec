@@ -13,12 +13,24 @@ def data_dir() -> Path:
 
     Resolution order:
     1. ``CONDA_EXEC_HOME`` environment variable (explicit override)
-    2. ``~/.conda/exec/`` (alongside conda's own data)
+    2. ``~/.conda/exec/`` (primary, all platforms)
+    3. On Windows only: ``platformdirs.user_data_dir("conda", "conda") / "exec"``
+       as a fallback, matching conda's own behavior.
     """
     env = os.environ.get("CONDA_EXEC_HOME")
     if env:
         return Path(env).expanduser().resolve()
-    return Path.home() / ".conda" / "exec"
+
+    primary = Path.home() / ".conda" / "exec"
+
+    from conda.common.compat import on_win
+
+    if on_win and not primary.exists():
+        from platformdirs import user_data_dir
+
+        return Path(user_data_dir("conda", "conda")) / "exec"
+
+    return primary
 
 
 def envs_dir() -> Path:

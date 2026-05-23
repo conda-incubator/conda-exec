@@ -46,6 +46,14 @@
 - Pin minimum versions in `pyproject.toml` dependencies (e.g.,
   `"platformdirs >=4.0"`), not exact versions.
 
+## Code structure
+
+- Avoid private module-level helper functions (`_foo()`). If a helper
+  is called once, inline it at the call site. If it is genuinely
+  reused or tested independently, make it a public function with a
+  clear name and docstring. The underscore-prefix convention creates
+  untestable, hard-to-patch indirection without real encapsulation.
+
 ## Typing and linting
 
 - All code must be typed using modern annotations (`str | None` not
@@ -92,7 +100,7 @@
   any functionality, check whether conda already provides it:
 
   - `conda.common.path.BIN_DIRECTORY` for platform-correct bin dirs
-  - `conda.base.constants.on_win` for platform detection
+  - `conda.common.compat.on_win` for platform detection
   - `conda.core.prefix_data.PrefixData` for environment metadata,
     file listings (`PrefixRecord.files`), timestamps (`.created`,
     `.last_modified`), and size (`.size()`)
