@@ -8,15 +8,15 @@ conda-exec is a conda plugin that enables ephemeral package execution. It create
 
 ```{mermaid}
 flowchart TD
-    A["conda exec ruff check ."] --> B["plugin.py\nRegister exec and x subcommands"]
-    B --> C["cli/main.py\nParse args: tool, --spec, --with, --channel"]
-    C --> D["specs.py\nNormalize specs, compute cache key hash"]
-    D --> E{"cache.py\nCached env exists?"}
-    E -- "cache hit" --> F["binaries.py\nFind binary in prefix\nTouch conda-meta/history"]
-    E -- "cache miss" --> G["Solver + transaction via conda APIs\nWrite env to ~/.conda/exec/envs/tool--hash/"]
+    A["<b>conda exec ruff check .</b>"] --> B["<b>plugin.py</b><br>Register exec and x subcommands"]
+    B --> C["<b>cli/main.py</b><br>Parse args: tool, --spec, --with, --channel"]
+    C --> D["<b>specs.py</b><br>Normalize specs, compute cache key hash"]
+    D --> E{"<b>cache.py</b><br>Cached env exists?"}
+    E -- cache hit --> F["<b>binaries.py</b><br>Find binary in prefix"]
+    E -- cache miss --> G["<b>Solver + transaction</b><br>Create env in ~/.conda/exec/envs/"]
     G --> F
-    F --> H["run.py\nsubprocess.run with PATH prepend"]
-    H --> I["Exit code forwarded from subprocess"]
+    F --> H["<b>run.py</b><br>subprocess.run with PATH prepend"]
+    H --> I(["Exit code forwarded"])
 ```
 
 ## Prior art
