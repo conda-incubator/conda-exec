@@ -22,13 +22,6 @@ conda install -c conda-forge conda-exec
 
 :::
 
-:::{tab-item} cx
-
-Already included when using
-[conda-express (cx)](https://github.com/conda-incubator/conda-express).
-
-:::
-
 ::::
 
 ## Usage
