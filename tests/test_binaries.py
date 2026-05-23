@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import stat
+import sys
 from typing import TYPE_CHECKING
 
 import pytest
@@ -61,6 +62,7 @@ def test_find_binary_windows(win_prefix: Path, ext: str):
     assert result.stem == "ruff"
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="chmod +x is a no-op on Windows")
 def test_discover_binaries_unix(unix_prefix: Path):
     _make_executable(unix_prefix / "bin" / "alpha")
     _make_executable(unix_prefix / "bin" / "beta")

@@ -22,10 +22,37 @@ def test_data_dir_env_override(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
     assert data_dir() == target
 
 
-def test_data_dir_default(monkeypatch: pytest.MonkeyPatch):
+def test_data_dir_default_unix(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.delenv("CONDA_EXEC_HOME", raising=False)
+    monkeypatch.setattr("conda.common.compat.on_win", False)
     result = data_dir()
     assert result == Path.home() / ".conda" / "exec"
+
+
+def test_data_dir_default_windows_primary(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+):
+    """On Windows, if ~/.conda/exec exists, use it as primary."""
+    primary = tmp_path / ".conda" / "exec"
+    primary.mkdir(parents=True)
+    monkeypatch.delenv("CONDA_EXEC_HOME", raising=False)
+    monkeypatch.setattr("conda.common.compat.on_win", True)
+    monkeypatch.setattr(Path, "home", staticmethod(lambda: tmp_path))
+    result = data_dir()
+    assert result == primary
+
+
+def test_data_dir_default_windows_fallback(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+):
+    """On Windows, if ~/.conda/exec does not exist, fall back to platformdirs."""
+    fallback = str(tmp_path / "AppData" / "Local" / "conda" / "conda")
+    monkeypatch.delenv("CONDA_EXEC_HOME", raising=False)
+    monkeypatch.setattr("conda.common.compat.on_win", True)
+    monkeypatch.setattr(Path, "home", staticmethod(lambda: tmp_path))
+    monkeypatch.setattr("platformdirs.user_data_dir", lambda *a, **kw: fallback)
+    result = data_dir()
+    assert result == Path(fallback) / "exec"
 
 
 def test_envs_dir_is_subdir_of_data_dir(
