@@ -34,7 +34,7 @@ def test_parse_tool_with_args(parser: ArgumentParser):
 def test_parse_tool_with_separator(parser: ArgumentParser):
     args = parser.parse_args(["ruff", "--", "--check", "."])
     assert args.tool == "ruff"
-    assert args.tool_args == ["--", "--check", "."]
+    assert args.tool_args == ["--check", "."]
 
 
 def test_parse_channel(parser: ArgumentParser):

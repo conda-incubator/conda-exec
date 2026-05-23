@@ -28,11 +28,13 @@ def find_binary(prefix: Path, name: str) -> Path | None:
         for ext in (".exe", ".bat", ".cmd", ""):
             candidate = bin_dir / f"{name}{ext}"
             if candidate.is_file():
-                return candidate
+                if _is_within_prefix(candidate, prefix):
+                    return candidate
     else:
         candidate = bin_dir / name
         if candidate.is_file():
-            return candidate
+            if _is_within_prefix(candidate, prefix):
+                return candidate
 
     return None
 
@@ -63,3 +65,11 @@ def discover_binaries(prefix: Path) -> list[str]:
 
 def _is_executable(path: Path) -> bool:
     return bool(path.stat().st_mode & (stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH))
+
+
+def _is_within_prefix(path: Path, prefix: Path) -> bool:
+    """Verify a binary resolves to a path within the prefix (symlink safety)."""
+    try:
+        return path.resolve().is_relative_to(prefix.resolve())
+    except (OSError, ValueError):
+        return False

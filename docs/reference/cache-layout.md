@@ -4,8 +4,8 @@ conda-exec stores cached environments under a platform-specific data directory.
 
 ## Directory structure
 
-```
-<data-dir>/conda/exec/
+```text
+~/.conda/exec/
   envs/
     ruff--a3f8b2c1/           # cached env for bare `conda exec ruff`
       conda-meta/
@@ -29,13 +29,11 @@ Each cached environment is identified by `{tool}--{hash}` where:
 
 Different `--spec`, `--with`, or `--channel` values produce different cache keys.
 
-## Default paths
+## Default path
 
-| Platform | Path |
-|----------|------|
-| Linux | `~/.local/share/conda/exec/` |
-| macOS | `~/Library/Application Support/conda/exec/` |
-| Windows | `%LOCALAPPDATA%\conda\exec\` |
+All platforms use `~/.conda/exec/` (alongside conda's own data at `~/.conda/`).
+
+On Windows, `~` expands to `%USERPROFILE%` (typically `C:\Users\<username>`).
 
 ## Environment variable override
 

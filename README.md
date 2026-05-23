@@ -2,7 +2,7 @@
 
 Ephemeral package execution for conda. Run any conda package without installing it permanently.
 
-```
+```bash
 conda exec ruff check .
 conda x ruff check .
 ```
@@ -11,7 +11,7 @@ conda-exec creates a cached, isolated environment for the tool, runs it, and exi
 
 ## Installation
 
-```
+```bash
 conda install conda-exec
 ```
 
@@ -41,7 +41,7 @@ conda exec --refresh ruff check .
 ## How it works
 
 1. Computes a cache key from the tool name, specs, and channels
-2. Checks `~/.local/share/conda/exec/envs/` for a cached environment
+2. Checks `~/.conda/exec/envs/` for a cached environment
 3. On cache miss: solves and installs via conda-rattler-solver
 4. Finds the binary in the environment's `bin/` directory
 5. Runs it directly via `subprocess.run` with PATH prepended

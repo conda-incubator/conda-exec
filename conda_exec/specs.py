@@ -3,23 +3,36 @@
 from __future__ import annotations
 
 import hashlib
-from typing import TYPE_CHECKING
+import re
 
-if TYPE_CHECKING:
-    pass
+_SAFE_TOOL_RE = re.compile(r"^[a-zA-Z0-9_][a-zA-Z0-9_.+-]*$")
+
+
+def validate_tool_name(tool: str) -> None:
+    """Validate that a tool name is safe for use in filesystem paths."""
+    if not tool:
+        raise ValueError("tool name cannot be empty")
+    if len(tool) > 128:
+        raise ValueError(f"tool name too long: {len(tool)} characters")
+    if not _SAFE_TOOL_RE.match(tool):
+        raise ValueError(
+            f"invalid tool name: {tool!r} "
+            "(must contain only alphanumeric, dash, dot, plus, underscore)"
+        )
 
 
 def cache_key(tool: str, specs: list[str], channels: list[str]) -> str:
     """Compute a deterministic cache key for a set of specs and channels.
 
-    Returns ``{tool}--{hash}`` where hash is derived from the sorted,
-    normalized spec list and channel list.
+    Returns ``{tool}--{hash}`` where hash is the first 16 hex characters
+    of the SHA-256 of the sorted, normalized spec list and channel list.
     """
     from conda.models.match_spec import MatchSpec
 
+    validate_tool_name(tool)
     normalized = sorted(str(MatchSpec(s)) for s in specs)
     blob = "|".join(normalized) + "||" + "|".join(sorted(channels))
-    h = hashlib.sha256(blob.encode()).hexdigest()[:8]
+    h = hashlib.sha256(blob.encode()).hexdigest()[:16]
     return f"{tool}--{h}"
 
 

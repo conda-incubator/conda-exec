@@ -25,10 +25,12 @@ def test_data_dir_env_override(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
 def test_data_dir_default(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.delenv("CONDA_EXEC_HOME", raising=False)
     result = data_dir()
-    assert result.parts[-2:] == ("conda", "exec")
+    assert result == Path.home() / ".conda" / "exec"
 
 
-def test_envs_dir_is_subdir_of_data_dir(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+def test_envs_dir_is_subdir_of_data_dir(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+):
     monkeypatch.setenv("CONDA_EXEC_HOME", str(tmp_path))
     assert envs_dir() == tmp_path / "envs"
 

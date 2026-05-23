@@ -3,18 +3,22 @@
 from __future__ import annotations
 
 import logging
+import os
+import re
 from dataclasses import dataclass
-from datetime import datetime
 from typing import TYPE_CHECKING
 
 from .exceptions import SolveError, SolverNotAvailableError
 
 if TYPE_CHECKING:
+    from datetime import datetime
     from pathlib import Path
 
 log = logging.getLogger(__name__)
 
 MAX_ENV_NAME_LEN = 200
+
+_SAFE_KEY_RE = re.compile(r"^[a-zA-Z0-9_][a-zA-Z0-9_.+-]*--[0-9a-f]+$")
 
 
 @dataclass(frozen=True)
@@ -48,7 +52,7 @@ class CacheManager:
     ) -> Path:
         """Return a cached prefix, creating it if it does not exist."""
         prefix = self._prefix_for(key)
-        if self.exists(key):
+        if prefix.is_dir() and (prefix / "conda-meta").is_dir():
             self._touch(prefix)
             return prefix
         return self.create(key, specs, channels)
@@ -59,9 +63,14 @@ class CacheManager:
         specs: list[str],
         channels: list[str],
     ) -> Path:
-        """Create a new cached environment via conda's solver."""
+        """Create a new cached environment via conda's solver.
+
+        Uses a temporary directory and atomic rename to prevent
+        partial environments from being visible on crash.
+        """
         from conda.base.context import context
         from conda.exceptions import UnsatisfiableError
+        from conda.gateways.disk.delete import rm_rf
         from conda.models.channel import Channel
         from conda.models.match_spec import MatchSpec
 
@@ -69,8 +78,10 @@ class CacheManager:
         if solver_backend is None:
             raise SolverNotAvailableError
 
-        prefix = self._prefix_for(key)
-        prefix.mkdir(parents=True, exist_ok=True)
+        final_prefix = self._prefix_for(key)
+        tmp_prefix = self.envs_dir / f".tmp-{key}-{os.getpid()}"
+        self.envs_dir.mkdir(parents=True, exist_ok=True)
+        tmp_prefix.mkdir(exist_ok=True)
 
         channel_objs = [Channel(c) for c in channels]
         match_specs = [MatchSpec(s) for s in specs]
@@ -78,7 +89,7 @@ class CacheManager:
         tool = key.rsplit("--", 1)[0]
 
         solver = solver_backend(
-            str(prefix),
+            str(tmp_prefix),
             channel_objs,
             context.subdirs,
             specs_to_add=match_specs,
@@ -87,15 +98,18 @@ class CacheManager:
         try:
             transaction = solver.solve_for_transaction()
         except (UnsatisfiableError, SystemExit) as exc:
-            from conda.gateways.disk.delete import rm_rf
-
-            rm_rf(prefix)
+            rm_rf(tmp_prefix)
             raise SolveError(tool, str(exc)) from exc
 
-        transaction.download_and_extract()
-        transaction.execute()
+        try:
+            transaction.download_and_extract()
+            transaction.execute()
+            tmp_prefix.rename(final_prefix)
+        except BaseException:
+            rm_rf(tmp_prefix)
+            raise
 
-        return prefix
+        return final_prefix
 
     def exists(self, key: str) -> bool:
         """Check if a cached environment exists (fast stat-only check)."""
@@ -123,13 +137,15 @@ class CacheManager:
         for path in sorted(self.envs_dir.iterdir()):
             if not path.is_dir() or "--" not in path.name:
                 continue
+            if path.name.startswith(".tmp-"):
+                continue
             conda_meta = path / "conda-meta"
             if not conda_meta.is_dir():
                 continue
 
             tool = path.name.rsplit("--", 1)[0]
             pd = PrefixData(path)
-            records = list(pd.iter_records())
+            package_count = len(list(conda_meta.glob("*.json")))
 
             entries.append(
                 CacheEntry(
@@ -139,7 +155,7 @@ class CacheManager:
                     created=pd.created,
                     last_modified=pd.last_modified,
                     size=pd.size(),
-                    package_count=len(records),
+                    package_count=package_count,
                 )
             )
         return entries
@@ -147,10 +163,17 @@ class CacheManager:
     def _prefix_for(self, key: str) -> Path:
         if len(key) > MAX_ENV_NAME_LEN:
             raise ValueError(f"cache key too long: {len(key)} > {MAX_ENV_NAME_LEN}")
-        return self.envs_dir / key
+        if not _SAFE_KEY_RE.match(key):
+            raise ValueError(f"invalid cache key: {key!r}")
+        prefix = self.envs_dir / key
+        resolved = prefix.resolve()
+        if not resolved.is_relative_to(self.envs_dir.resolve()):
+            raise ValueError(f"cache key escapes envs directory: {key!r}")
+        return prefix
 
     def _touch(self, prefix: Path) -> None:
         """Update the history file mtime for staleness tracking."""
-        history = prefix / "conda-meta" / "history"
-        if history.exists():
-            history.touch()
+        try:
+            os.utime(prefix / "conda-meta" / "history")
+        except FileNotFoundError:
+            pass

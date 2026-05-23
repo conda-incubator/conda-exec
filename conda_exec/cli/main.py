@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import sys
-from argparse import REMAINDER, ArgumentParser, Namespace, _SubParsersAction
+from argparse import REMAINDER
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    pass
+    from argparse import ArgumentParser, Namespace
 
 DEFAULT_CHANNELS = ["conda-forge"]
 

@@ -24,7 +24,6 @@ classifiers = [
 dependencies = [
   # conda is required but only available via conda, not PyPI:
   # "conda >=25.1",
-  "platformdirs >=4.0",
 ]
 dynamic = ["version"]
 
@@ -60,7 +59,8 @@ target-version = "py310"
 exclude = ["conda_exec/_version.py"]
 
 [tool.ruff.lint]
-flake8-type-checking = { exempt-modules = [], strict = true }
+flake8-type-checking.exempt-modules = []
+flake8-type-checking.strict = true
 select = [
   "E",      # pycodestyle errors
   "F",      # pyflakes
@@ -101,7 +101,6 @@ pre-commit = ">=4.0"
 [tool.pixi.feature.test.dependencies]
 pytest = ">=8.0"
 pytest-cov = ">=4.0"
-platformdirs = ">=4.0"
 
 [tool.pixi.feature.docs.dependencies]
 sphinx = ">=7.0"

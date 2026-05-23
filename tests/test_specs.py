@@ -39,7 +39,7 @@ def test_cache_key_starts_with_tool():
 def test_cache_key_has_hash():
     key = cache_key("ruff", ["ruff"], ["conda-forge"])
     _, h = key.split("--", 1)
-    assert len(h) == 8
+    assert len(h) == 16
     assert all(c in "0123456789abcdef" for c in h)
 
 

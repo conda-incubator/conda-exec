@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import stat
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 from conda_exec.binaries import discover_binaries, find_binary
 

@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import os
 import subprocess
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 from conda_exec.run import run_in_prefix
 

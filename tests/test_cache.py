@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
-from conda_exec.cache import CacheManager, CacheEntry
+from conda_exec.cache import CacheManager
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def test_cache_manager_default_envs_dir(mock_exec_home: Path):
@@ -50,7 +53,7 @@ def test_get_or_create_uses_cache(
     solver_calls: list[dict],
 ):
     cm = CacheManager()
-    key = "ruff--test1234"
+    key = "ruff--abcdef01"
 
     prefix1 = cm.get_or_create(key, ["ruff"], ["conda-forge"])
     assert len(solver_calls) == 1
@@ -65,7 +68,7 @@ def test_get_or_create_creates_on_miss(
     solver_calls: list[dict],
 ):
     cm = CacheManager()
-    prefix = cm.get_or_create("ruff--test1234", ["ruff"], ["conda-forge"])
+    prefix = cm.get_or_create("ruff--abcdef01", ["ruff"], ["conda-forge"])
     assert prefix.is_dir()
     assert (prefix / "conda-meta").is_dir()
     assert solver_calls[0]["specs"] == ["ruff"]

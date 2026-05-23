@@ -6,8 +6,6 @@ import os
 from functools import lru_cache
 from pathlib import Path
 
-from platformdirs import user_data_path
-
 
 @lru_cache(maxsize=1)
 def data_dir() -> Path:
@@ -15,12 +13,12 @@ def data_dir() -> Path:
 
     Resolution order:
     1. ``CONDA_EXEC_HOME`` environment variable (explicit override)
-    2. ``<user_data_dir>/conda/exec/`` via platformdirs
+    2. ``~/.conda/exec/`` (alongside conda's own data)
     """
     env = os.environ.get("CONDA_EXEC_HOME")
     if env:
         return Path(env).expanduser().resolve()
-    return user_data_path("conda") / "exec"
+    return Path.home() / ".conda" / "exec"
 
 
 def envs_dir() -> Path:

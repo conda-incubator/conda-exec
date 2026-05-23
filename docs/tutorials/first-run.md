@@ -41,6 +41,6 @@ conda x ruff check .
 
 ## What happened?
 
-conda-exec created a cached environment at `~/.local/share/conda/exec/envs/ruff--<hash>/`.
+conda-exec created a cached environment at `~/.conda/exec/envs/ruff--<hash>/`.
 This environment is isolated and disposable. It is not on your PATH and does not affect
 your other conda environments.
