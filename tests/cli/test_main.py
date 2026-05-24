@@ -4,13 +4,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import pytest
+
 from conda_exec.cli.main import execute
 from conda_exec.cli.run import execute_run
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser
-
-    import pytest
 
 
 def test_parse_bare_tool(parser: ArgumentParser):
@@ -21,22 +21,37 @@ def test_parse_bare_tool(parser: ArgumentParser):
     assert args.with_specs is None
 
 
-def test_parse_tool_with_args(parser: ArgumentParser):
-    args = parser.parse_args(["ruff", "check", "."])
-    assert args.tool == "ruff"
-    assert args.tool_args == ["check", "."]
-
-
-def test_parse_tool_with_separator(parser: ArgumentParser):
-    args = parser.parse_args(["ruff", "--", "--check", "."])
-    assert args.tool == "ruff"
-    assert args.tool_args == ["--check", "."]
-
-
-def test_parse_channel(parser: ArgumentParser):
-    args = parser.parse_args(["-c", "bioconda", "samtools"])
-    assert args.channels == ["bioconda"]
-    assert args.tool == "samtools"
+@pytest.mark.parametrize(
+    ("argv", "attr", "expected"),
+    [
+        (["ruff", "check", "."], "tool_args", ["check", "."]),
+        (["ruff", "--", "--check", "."], "tool_args", ["--check", "."]),
+        (["-c", "bioconda", "samtools"], "channels", ["bioconda"]),
+        (["ruff>=0.4"], "tool", "ruff>=0.4"),
+        (["--activate", "ruff"], "activate", True),
+        (["ruff"], "activate", False),
+        (["--refresh", "ruff"], "refresh", True),
+        (["ruff"], "refresh", False),
+    ],
+    ids=[
+        "tool-with-args",
+        "tool-with-separator",
+        "channel",
+        "matchspec",
+        "activate",
+        "no-activate-default",
+        "refresh",
+        "no-refresh-default",
+    ],
+)
+def test_parse_flag(
+    parser: ArgumentParser,
+    argv: list[str],
+    attr: str,
+    expected: object,
+):
+    args = parser.parse_args(argv)
+    assert getattr(args, attr) == expected
 
 
 def test_parse_multiple_channels(parser: ArgumentParser):
@@ -44,35 +59,10 @@ def test_parse_multiple_channels(parser: ArgumentParser):
     assert args.channels == ["bioconda", "defaults"]
 
 
-def test_parse_matchspec(parser: ArgumentParser):
-    args = parser.parse_args(["ruff>=0.4"])
-    assert args.tool == "ruff>=0.4"
-
-
 def test_parse_with_specs(parser: ArgumentParser):
     args = parser.parse_args(["--with", "pytest", "--with", "python=3.12", "ruff"])
     assert args.with_specs == ["pytest", "python=3.12"]
     assert args.tool == "ruff"
-
-
-def test_parse_activate(parser: ArgumentParser):
-    args = parser.parse_args(["--activate", "ruff"])
-    assert args.activate is True
-
-
-def test_parse_no_activate_default(parser: ArgumentParser):
-    args = parser.parse_args(["ruff"])
-    assert args.activate is False
-
-
-def test_parse_refresh(parser: ArgumentParser):
-    args = parser.parse_args(["--refresh", "ruff"])
-    assert args.refresh is True
-
-
-def test_parse_no_refresh_default(parser: ArgumentParser):
-    args = parser.parse_args(["ruff"])
-    assert args.refresh is False
 
 
 def test_parse_all_options(parser: ArgumentParser):
@@ -97,70 +87,60 @@ def test_parse_all_options(parser: ArgumentParser):
     assert args.tool_args == ["check", "."]
 
 
-def test_parse_list_as_tool(parser: ArgumentParser):
-    args = parser.parse_args(["list"])
-    assert args.tool == "list"
-    assert args.tool_args == []
+@pytest.mark.parametrize(
+    ("argv", "expected_tool", "expected_args"),
+    [
+        (["list"], "list", []),
+        (["list", "--json"], "list", ["--json"]),
+        (["clean"], "clean", []),
+        (["clean", "--all"], "clean", ["--all"]),
+        (
+            ["clean", "--all", "--dry-run", "ruff"],
+            "clean",
+            ["--all", "--dry-run", "ruff"],
+        ),
+    ],
+    ids=[
+        "list-bare",
+        "list-json",
+        "clean-bare",
+        "clean-all",
+        "clean-with-options",
+    ],
+)
+def test_parse_subcommand(
+    parser: ArgumentParser,
+    argv: list[str],
+    expected_tool: str,
+    expected_args: list[str],
+):
+    args = parser.parse_args(argv)
+    assert args.tool == expected_tool
+    assert args.tool_args == expected_args
 
 
-def test_parse_list_json_as_tool_args(parser: ArgumentParser):
-    args = parser.parse_args(["list", "--json"])
-    assert args.tool == "list"
-    assert args.tool_args == ["--json"]
-
-
-def test_parse_clean_as_tool(parser: ArgumentParser):
-    args = parser.parse_args(["clean"])
-    assert args.tool == "clean"
-    assert args.tool_args == []
-
-
-def test_parse_clean_all_as_tool_args(parser: ArgumentParser):
-    args = parser.parse_args(["clean", "--all"])
-    assert args.tool == "clean"
-    assert args.tool_args == ["--all"]
-
-
-def test_parse_clean_with_options_as_tool_args(parser: ArgumentParser):
-    args = parser.parse_args(["clean", "--all", "--dry-run", "ruff"])
-    assert args.tool == "clean"
-    assert args.tool_args == ["--all", "--dry-run", "ruff"]
-
-
-def test_dispatch_to_list(parser: ArgumentParser, monkeypatch: pytest.MonkeyPatch):
+@pytest.mark.parametrize(
+    ("argv", "target", "label"),
+    [
+        (["list"], "conda_exec.cli.list.execute_list", "list"),
+        (["clean"], "conda_exec.cli.clean.execute_clean", "clean"),
+        (["ruff"], "conda_exec.cli.run.execute_run", "run"),
+    ],
+    ids=["list", "clean", "run"],
+)
+def test_dispatch(
+    parser: ArgumentParser,
+    monkeypatch: pytest.MonkeyPatch,
+    argv: list[str],
+    target: str,
+    label: str,
+):
     calls: list[str] = []
-    monkeypatch.setattr(
-        "conda_exec.cli.list.execute_list",
-        lambda args: (calls.append("list"), 0)[1],
-    )
-    args = parser.parse_args(["list"])
+    monkeypatch.setattr(target, lambda args: (calls.append(label), 0)[1])
+    args = parser.parse_args(argv)
     rc = execute(args)
     assert rc == 0
-    assert calls == ["list"]
-
-
-def test_dispatch_to_clean(parser: ArgumentParser, monkeypatch: pytest.MonkeyPatch):
-    calls: list[str] = []
-    monkeypatch.setattr(
-        "conda_exec.cli.clean.execute_clean",
-        lambda args: (calls.append("clean"), 0)[1],
-    )
-    args = parser.parse_args(["clean"])
-    rc = execute(args)
-    assert rc == 0
-    assert calls == ["clean"]
-
-
-def test_dispatch_to_run(parser: ArgumentParser, monkeypatch: pytest.MonkeyPatch):
-    calls: list[str] = []
-    monkeypatch.setattr(
-        "conda_exec.cli.run.execute_run",
-        lambda args: (calls.append("run"), 0)[1],
-    )
-    args = parser.parse_args(["ruff"])
-    rc = execute(args)
-    assert rc == 0
-    assert calls == ["run"]
+    assert calls == [label]
 
 
 def test_dispatch_list_parses_subcommand_args(
@@ -242,8 +222,7 @@ def test_execute_run_refresh_removes_cache(
         lambda prefix, name: __import__("pathlib").Path("/fake/bin/ruff"),
     )
     monkeypatch.setattr(
-        "conda_exec.run.run_in_prefix",
-        lambda prefix, binary, args, **kw: 0,
+        "conda_exec.run.run_in_prefix", lambda prefix, binary, args, **kw: 0
     )
     args = parser.parse_args(["--refresh", "ruff"])
     rc = execute_run(args)
