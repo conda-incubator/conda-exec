@@ -32,6 +32,7 @@ def win_prefix(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     return env_prefix
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="Unix executable permissions")
 def test_find_binary_unix(unix_prefix: Path, executable: Callable[[Path], None]):
     executable(unix_prefix / "bin" / "ruff")
     result = find_binary(unix_prefix, "ruff")

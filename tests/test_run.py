@@ -13,8 +13,6 @@ if TYPE_CHECKING:
 
     from pytest_subprocess import FakeProcess
 
-from conda.common.path import BIN_DIRECTORY
-
 from conda_exec.run import build_activated_env, run_in_prefix
 
 
@@ -36,7 +34,7 @@ def test_run_in_prefix_prepends_path(
     assert recorder.call_count() == 1
 
     env = recorder.first_call.kwargs["env"]
-    assert str(prefix / BIN_DIRECTORY) in env["PATH"].split(os.pathsep)
+    assert str(prefix / "bin") in env["PATH"].split(os.pathsep)
 
 
 @pytest.mark.usefixtures("patch_bin_dir")
@@ -102,7 +100,7 @@ def test_run_in_prefix_with_activate(
     monkeypatch.setattr(
         "conda_exec.run.build_activated_env",
         lambda env_prefix: {
-            "PATH": str(prefix / BIN_DIRECTORY),
+            "PATH": str(prefix / "bin"),
             "CONDA_PREFIX": str(prefix),
         },
     )
