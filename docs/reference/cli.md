@@ -171,9 +171,9 @@ conda exec --list
 ```
 
 ```text
-Tool       Key                        Size      Packages  Last used
-ruff       ruff--a3f8b2c1d9e0f4a7     42.9 MB   3         2 days ago
-samtools   samtools--7e2d9f04b1c3e8   114.4 MB  47         5 hours ago
+Tool        Size     Last used         Packages
+ruff       42.9 MB   2 days ago        3
+samtools  114.4 MB   5 hours ago       47
 ```
 
 ## conda exec --clean
