@@ -17,3 +17,12 @@ updates:
       python:
         patterns:
           - "*"
+
+  - package-ecosystem: conda
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      conda:
+        patterns:
+          - "*"
