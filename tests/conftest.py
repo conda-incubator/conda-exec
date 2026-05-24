@@ -36,30 +36,30 @@ def exec_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Generator[Path
 @pytest.fixture()
 def prefix(tmp_path: Path) -> Path:
     """Create a conda prefix with bin/ and conda-meta/."""
-    p = tmp_path / "envs" / "test-tool--abcd1234"
-    (p / "conda-meta").mkdir(parents=True)
-    (p / "bin").mkdir()
-    return p
+    env_prefix = tmp_path / "envs" / "test-tool--abcd1234"
+    (env_prefix / "conda-meta").mkdir(parents=True)
+    (env_prefix / "bin").mkdir()
+    return env_prefix
 
 
 @pytest.fixture()
 def binary(prefix: Path) -> Path:
     """Create an executable in a prefix's bin/."""
-    b = prefix / "bin" / "mytool"
-    b.write_text("#!/bin/sh\nexit 0\n")
-    b.chmod(b.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
-    return b
+    tool_bin = prefix / "bin" / "mytool"
+    tool_bin.write_text("#!/bin/sh\nexit 0\n")
+    tool_bin.chmod(tool_bin.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+    return tool_bin
 
 
 @pytest.fixture()
 def executable() -> Callable[[Path], None]:
     """Factory that marks a path as an executable script."""
 
-    def _chmod(path: Path) -> None:
+    def make_executable(path: Path) -> None:
         path.write_text("#!/bin/sh\n")
         path.chmod(path.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
-    return _chmod
+    return make_executable
 
 
 @pytest.fixture()
@@ -67,31 +67,69 @@ def solver_calls(monkeypatch: pytest.MonkeyPatch) -> list[dict]:
     """Replace CacheManager.create with a stub that records calls."""
     calls: list[dict] = []
 
-    def _create(self, key, specs, channels):
-        p = self.envs_dir / key
-        p.mkdir(parents=True, exist_ok=True)
-        (p / "conda-meta").mkdir(exist_ok=True)
-        (p / "conda-meta" / "history").touch()
+    def create_env(self, key, specs, channels):
+        env_prefix = self.envs_dir / key
+        env_prefix.mkdir(parents=True, exist_ok=True)
+        (env_prefix / "conda-meta").mkdir(exist_ok=True)
+        (env_prefix / "conda-meta" / "history").touch()
         calls.append({"key": key, "specs": specs, "channels": channels})
-        return p
+        return env_prefix
 
-    monkeypatch.setattr("conda_exec.cache.CacheManager.create", _create)
+    monkeypatch.setattr("conda_exec.cache.CacheManager.create", create_env)
     return calls
 
 
 @pytest.fixture()
 def parser() -> ArgumentParser:
     """Create the top-level ``conda exec`` argument parser."""
-    p = ArgumentParser()
-    configure_parser(p)
-    return p
+    arg_parser = ArgumentParser()
+    configure_parser(arg_parser)
+    return arg_parser
+
+
+@pytest.fixture()
+def write_script(tmp_path: Path) -> Callable[..., Path]:
+    """Factory that writes a script file and returns its path."""
+
+    def write_file(content: str, name: str = "test_script.py") -> Path:
+        script = tmp_path / name
+        script.write_text(content)
+        return script
+
+    return write_file
+
+
+@pytest.fixture()
+def script_env(
+    exec_home: Path,
+    solver_calls: list[dict],
+    monkeypatch: pytest.MonkeyPatch,
+) -> list[dict]:
+    """Isolated script execution environment.
+
+    Patches find_binary to create a fake python binary and
+    run_in_prefix to return 0. Returns solver_calls for assertions.
+    """
+
+    def fake_find_binary(prefix: Path, name: str) -> Path | None:
+        python = prefix / "bin" / "python"
+        python.parent.mkdir(parents=True, exist_ok=True)
+        python.write_text("#!/bin/sh\n")
+        python.chmod(python.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+        return python
+
+    monkeypatch.setattr("conda_exec.binaries.find_binary", fake_find_binary)
+    monkeypatch.setattr(
+        "conda_exec.run.run_in_prefix", lambda prefix, binary, args, **kw: 0
+    )
+    return solver_calls
 
 
 @pytest.fixture()
 def cache_entry() -> Callable[..., CacheEntry]:
     """Factory fixture that builds CacheEntry instances."""
 
-    def _build(
+    def build_entry(
         tool: str = "ruff",
         key: str = "ruff--abcd1234",
         size: int = 45_000_000,
@@ -109,4 +147,4 @@ def cache_entry() -> Callable[..., CacheEntry]:
             package_count=package_count,
         )
 
-    return _build
+    return build_entry

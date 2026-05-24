@@ -19,9 +19,9 @@ def test_solve_error():
 
 
 def test_binary_not_found_error():
-    exc = BinaryNotFoundError("ruff", "/fake/prefix")
+    exc = BinaryNotFoundError("ruff")
     assert "ruff" in exc.error_message
-    assert "/fake/prefix" in exc.error_message
+    assert "cached environment" in exc.error_message
     assert len(exc.hints) == 2
     assert isinstance(exc, CondaExecError)
 

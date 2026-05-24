@@ -104,6 +104,7 @@ pytest = ">=8.0"
 pytest-cov = ">=4.0"
 pytest-subprocess = ">=1.5"
 time-machine = ">=2.0"
+conda-pypi = ">=0.9"
 
 [tool.pixi.feature.docs.dependencies]
 sphinx = ">=7.0"
@@ -124,6 +125,8 @@ lint = { cmd = "ruff check conda_exec tests", description = "Check code style" }
 format = { cmd = "ruff format conda_exec tests", description = "Auto-format code" }
 format-check = { cmd = "ruff format --check conda_exec tests", description = "Verify formatting" }
 typecheck = { cmd = "ty check conda_exec", description = "Run type checker" }
+
+[tool.pixi.feature.test.tasks]
 test = { cmd = "pytest", description = "Run test suite" }
 test-cov = { cmd = "pytest --cov --cov-report=term-missing --cov-report=html --cov-report=xml", description = "Tests with coverage" }
 

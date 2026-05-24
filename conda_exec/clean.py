@@ -45,7 +45,7 @@ def execute_clean(args: Namespace) -> int:
         print("Nothing to clean.")
         return 0
 
-    total_size = sum(e.size for e in to_remove)
+    total_size = sum(entry.size for entry in to_remove)
 
     if dry_run:
         print(

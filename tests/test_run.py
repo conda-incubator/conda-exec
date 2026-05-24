@@ -17,11 +17,11 @@ from conda_exec.run import build_activated_env, run_in_prefix
 
 
 @pytest.fixture()
-def _patch_bin_dir(monkeypatch: pytest.MonkeyPatch):
+def patch_bin_dir(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr("conda_exec.run.BIN_DIRECTORY", "bin")
 
 
-@pytest.mark.usefixtures("_patch_bin_dir")
+@pytest.mark.usefixtures("patch_bin_dir")
 def test_run_in_prefix_prepends_path(
     prefix: Path,
     binary: Path,
@@ -37,7 +37,7 @@ def test_run_in_prefix_prepends_path(
     assert str(prefix / "bin") in env["PATH"].split(os.pathsep)
 
 
-@pytest.mark.usefixtures("_patch_bin_dir")
+@pytest.mark.usefixtures("patch_bin_dir")
 def test_run_in_prefix_forwards_exit_code(
     prefix: Path,
     binary: Path,
@@ -48,33 +48,49 @@ def test_run_in_prefix_forwards_exit_code(
     assert rc == 42
 
 
-@pytest.mark.usefixtures("_patch_bin_dir")
-def test_run_in_prefix_file_not_found(
+def raise_on_run(exc: Exception):
+    """Return a callable that raises the given exception."""
+
+    def raiser(*args, **kwargs):
+        raise exc
+
+    return raiser
+
+
+@pytest.mark.usefixtures("patch_bin_dir")
+@pytest.mark.parametrize(
+    ("exception", "exit_code", "expected_message"),
+    [
+        pytest.param(
+            FileNotFoundError("mytool"),
+            127,
+            "command not found",
+            id="file-not-found",
+        ),
+        pytest.param(
+            PermissionError("mytool"),
+            126,
+            "permission denied",
+            id="permission-denied",
+        ),
+    ],
+)
+def test_run_in_prefix_subprocess_error(
     prefix: Path,
     binary: Path,
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture,
+    exception: Exception,
+    exit_code: int,
+    expected_message: str,
 ):
-    monkeypatch.setattr(subprocess, "run", _raise(FileNotFoundError(str(binary))))
+    monkeypatch.setattr(subprocess, "run", raise_on_run(exception))
     rc = run_in_prefix(prefix, binary, [])
-    assert rc == 127
-    assert "command not found" in capsys.readouterr().err
+    assert rc == exit_code
+    assert expected_message in capsys.readouterr().err
 
 
-@pytest.mark.usefixtures("_patch_bin_dir")
-def test_run_in_prefix_permission_denied(
-    prefix: Path,
-    binary: Path,
-    monkeypatch: pytest.MonkeyPatch,
-    capsys: pytest.CaptureFixture,
-):
-    monkeypatch.setattr(subprocess, "run", _raise(PermissionError(str(binary))))
-    rc = run_in_prefix(prefix, binary, [])
-    assert rc == 126
-    assert "permission denied" in capsys.readouterr().err
-
-
-@pytest.mark.usefixtures("_patch_bin_dir")
+@pytest.mark.usefixtures("patch_bin_dir")
 def test_run_in_prefix_with_activate(
     prefix: Path,
     binary: Path,
@@ -83,7 +99,10 @@ def test_run_in_prefix_with_activate(
 ):
     monkeypatch.setattr(
         "conda_exec.run.build_activated_env",
-        lambda p: {"PATH": str(prefix / "bin"), "CONDA_PREFIX": str(prefix)},
+        lambda env_prefix: {
+            "PATH": str(prefix / "bin"),
+            "CONDA_PREFIX": str(prefix),
+        },
     )
     recorder = fp.register([str(binary)], returncode=0)
 
@@ -103,7 +122,7 @@ def test_build_activated_env(
     }
 
     class FakeActivator:
-        def build_activate(self, p):
+        def build_activate(self, prefix_str):
             return fake_activation
 
     monkeypatch.setattr("conda.common.compat.on_win", False)
@@ -114,10 +133,3 @@ def test_build_activated_env(
     assert env["CONDA_PREFIX"] == str(prefix)
     assert env["MY_VAR"] == "hello"
     assert "CONDA_OLD_VAR" not in env
-
-
-def _raise(exc: Exception):
-    def _inner(*args, **kwargs):
-        raise exc
-
-    return _inner

@@ -25,16 +25,21 @@ def find_binary(prefix: Path, name: str) -> Path | None:
     if not bin_dir.is_dir():
         return None
 
+    try:
+        resolved_prefix = prefix.resolve()
+    except OSError:
+        return None
+
     if on_win:
         for ext in (*WIN_EXTENSIONS, ""):
             candidate = bin_dir / f"{name}{ext}"
             if candidate.is_file():
-                if is_within_prefix(candidate, prefix):
+                if is_within_prefix(candidate, resolved_prefix):
                     return candidate
     else:
         candidate = bin_dir / name
         if candidate.is_file():
-            if is_within_prefix(candidate, prefix):
+            if is_within_prefix(candidate, resolved_prefix):
                 return candidate
 
     return None
@@ -67,9 +72,13 @@ def is_executable(path: Path) -> bool:
     return bool(path.stat().st_mode & (stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH))
 
 
-def is_within_prefix(path: Path, prefix: Path) -> bool:
-    """Verify a binary resolves to a path within the prefix (symlink safety)."""
+def is_within_prefix(path: Path, resolved_prefix: Path) -> bool:
+    """Verify a binary resolves to a path within the prefix (symlink safety).
+
+    The prefix should already be resolved by the caller to avoid
+    repeated resolution when checking multiple candidates.
+    """
     try:
-        return path.resolve().is_relative_to(prefix.resolve())
+        return path.resolve().is_relative_to(resolved_prefix)
     except (OSError, ValueError):
         return False

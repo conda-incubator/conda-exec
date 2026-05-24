@@ -99,8 +99,8 @@ def test_find_binary_rejects_symlink_outside_prefix(
 def test_is_within_prefix_oserror(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from conda_exec.binaries import is_within_prefix
 
-    def _resolve(self):
+    def broken_resolve(self):
         raise OSError("broken")
 
-    monkeypatch.setattr("pathlib.Path.resolve", _resolve)
+    monkeypatch.setattr("pathlib.Path.resolve", broken_resolve)
     assert is_within_prefix(tmp_path / "bin" / "ruff", tmp_path) is False

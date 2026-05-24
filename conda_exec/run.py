@@ -57,9 +57,6 @@ def run_in_prefix(
         result = subprocess.run(
             [str(binary), *args],
             env=env,
-            stdin=sys.stdin,
-            stdout=sys.stdout,
-            stderr=sys.stderr,
         )
     except FileNotFoundError:
         print(f"conda exec: {binary.name}: command not found", file=sys.stderr)

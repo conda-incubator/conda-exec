@@ -10,7 +10,7 @@ from conda_exec.paths import data_dir, envs_dir
 
 
 @pytest.fixture(autouse=True)
-def _clear_cache():
+def clear_cache():
     data_dir.cache_clear()
     yield
     data_dir.cache_clear()

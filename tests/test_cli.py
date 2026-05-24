@@ -181,7 +181,7 @@ def test_execute_run_strips_separator(
     )
     monkeypatch.setattr(
         "conda_exec.cache.CacheManager.get_or_create",
-        lambda self, key, specs, channels: __import__("pathlib").Path("/fake"),
+        lambda self, key, specs, channels: (__import__("pathlib").Path("/fake"), False),
     )
     monkeypatch.setattr(
         "conda_exec.binaries.find_binary",
@@ -204,7 +204,7 @@ def test_execute_run_refresh_removes_cache(
     )
     monkeypatch.setattr(
         "conda_exec.cache.CacheManager.get_or_create",
-        lambda self, key, specs, channels: __import__("pathlib").Path("/fake"),
+        lambda self, key, specs, channels: (__import__("pathlib").Path("/fake"), False),
     )
     monkeypatch.setattr(
         "conda_exec.binaries.find_binary",
@@ -226,7 +226,7 @@ def test_execute_run_binary_not_found(
 ):
     monkeypatch.setattr(
         "conda_exec.cache.CacheManager.get_or_create",
-        lambda self, key, specs, channels: __import__("pathlib").Path("/fake"),
+        lambda self, key, specs, channels: (__import__("pathlib").Path("/fake"), False),
     )
     monkeypatch.setattr("conda_exec.binaries.find_binary", lambda prefix, name: None)
     args = parser.parse_args(["ruff"])
@@ -248,7 +248,7 @@ def test_execute_run_passes_activate(
     )
     monkeypatch.setattr(
         "conda_exec.cache.CacheManager.get_or_create",
-        lambda self, key, specs, channels: __import__("pathlib").Path("/fake"),
+        lambda self, key, specs, channels: (__import__("pathlib").Path("/fake"), False),
     )
     monkeypatch.setattr(
         "conda_exec.binaries.find_binary",
@@ -265,10 +265,9 @@ def test_execute_run_progress_on_cache_miss(
     capsys: pytest.CaptureFixture,
     monkeypatch: pytest.MonkeyPatch,
 ):
-    monkeypatch.setattr("conda_exec.cache.CacheManager.exists", lambda self, key: False)
     monkeypatch.setattr(
         "conda_exec.cache.CacheManager.get_or_create",
-        lambda self, key, specs, channels: __import__("pathlib").Path("/fake"),
+        lambda self, key, specs, channels: (__import__("pathlib").Path("/fake"), True),
     )
     monkeypatch.setattr(
         "conda_exec.binaries.find_binary",
@@ -290,10 +289,9 @@ def test_execute_run_no_progress_on_cache_hit(
     capsys: pytest.CaptureFixture,
     monkeypatch: pytest.MonkeyPatch,
 ):
-    monkeypatch.setattr("conda_exec.cache.CacheManager.exists", lambda self, key: True)
     monkeypatch.setattr(
         "conda_exec.cache.CacheManager.get_or_create",
-        lambda self, key, specs, channels: __import__("pathlib").Path("/fake"),
+        lambda self, key, specs, channels: (__import__("pathlib").Path("/fake"), False),
     )
     monkeypatch.setattr(
         "conda_exec.binaries.find_binary",
@@ -323,3 +321,31 @@ def test_execute_run_conda_exec_error(
     rc = execute_run(args)
     assert rc == 1
     assert "no candidates" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize(
+    ("flag", "expected_warning"),
+    [
+        pytest.param(
+            "--json",
+            "--json is only used with --list",
+            id="json-outside-list",
+        ),
+        pytest.param(
+            "--dry-run",
+            "--dry-run is only used with --clean",
+            id="dry-run-outside-clean",
+        ),
+    ],
+)
+def test_execute_warns_misplaced_flag(
+    parser: ArgumentParser,
+    capsys: pytest.CaptureFixture,
+    monkeypatch: pytest.MonkeyPatch,
+    flag: str,
+    expected_warning: str,
+):
+    monkeypatch.setattr("conda_exec.execute.execute_run", lambda args: 0)
+    args = parser.parse_args([flag, "ruff"])
+    execute(args)
+    assert expected_warning in capsys.readouterr().err

@@ -26,20 +26,22 @@ def execute_list(args: Namespace) -> int:
     if args.json_output:
         data = [
             {
-                "tool": e.tool,
-                "key": e.key,
-                "prefix": str(e.prefix),
-                "created": e.created.isoformat() if e.created else None,
-                "last_used": e.last_modified.isoformat() if e.last_modified else None,
-                "size_bytes": e.size,
-                "packages": e.package_count,
+                "tool": entry.tool,
+                "key": entry.key,
+                "prefix": str(entry.prefix),
+                "created": entry.created.isoformat() if entry.created else None,
+                "last_used": (
+                    entry.last_modified.isoformat() if entry.last_modified else None
+                ),
+                "size_bytes": entry.size,
+                "packages": entry.package_count,
             }
-            for e in entries
+            for entry in entries
         ]
         print(json.dumps(data, indent=2))
         return 0
 
-    name_width = max(len(e.tool) for e in entries)
+    name_width = max(len(entry.tool) for entry in entries)
     header_width = max(name_width, 4)
     print(f"{'Tool':<{header_width}}  {'Size':>8}  {'Last used':<16}  Packages")
     for entry in entries:

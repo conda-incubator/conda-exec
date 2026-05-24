@@ -6,14 +6,18 @@ import hashlib
 import logging
 import os
 import re
+import tempfile
+import time
 from dataclasses import dataclass
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from .exceptions import SolveError, SolverNotAvailableError
 
 if TYPE_CHECKING:
     from datetime import datetime
-    from pathlib import Path
+
+    from .script import ScriptMetadata
 
 log = logging.getLogger(__name__)
 
@@ -51,13 +55,13 @@ class CacheManager:
         key: str,
         specs: list[str],
         channels: list[str],
-    ) -> Path:
-        """Return a cached prefix, creating it if it does not exist."""
+    ) -> tuple[Path, bool]:
+        """Return a cached prefix and whether it was newly created."""
         prefix = self.prefix_for(key)
         if prefix.is_dir() and (prefix / "conda-meta").is_dir():
             self.touch(prefix)
-            return prefix
-        return self.create(key, specs, channels)
+            return prefix, False
+        return self.create(key, specs, channels), True
 
     def create(
         self,
@@ -81,9 +85,8 @@ class CacheManager:
             raise SolverNotAvailableError
 
         final_prefix = self.prefix_for(key)
-        tmp_prefix = self.envs_dir / f".tmp-{key}-{os.getpid()}"
         self.envs_dir.mkdir(parents=True, exist_ok=True)
-        tmp_prefix.mkdir(exist_ok=True)
+        tmp_prefix = Path(tempfile.mkdtemp(dir=self.envs_dir, prefix=".tmp-"))
 
         channel_objs = [Channel(c) for c in channels]
         match_specs = [MatchSpec(s) for s in specs]
@@ -108,6 +111,11 @@ class CacheManager:
             transaction.download_and_extract()
             transaction.execute()
             tmp_prefix.rename(final_prefix)
+        except OSError:
+            rm_rf(tmp_prefix)
+            if final_prefix.is_dir() and (final_prefix / "conda-meta").is_dir():
+                return final_prefix
+            raise
         except BaseException:
             rm_rf(tmp_prefix)
             raise
@@ -122,11 +130,13 @@ class CacheManager:
     def remove(self, key: str) -> None:
         """Remove a cached environment."""
         from conda.core.envs_manager import unregister_env
+        from conda.core.prefix_data import PrefixData
         from conda.gateways.disk.delete import rm_rf
 
         prefix = self.prefix_for(key)
         if prefix.exists():
             unregister_env(str(prefix))
+            PrefixData._cache_.clear()
             rm_rf(prefix)
 
     def list_cached(self) -> list[CacheEntry]:
@@ -180,10 +190,10 @@ class CacheManager:
                 f"invalid tool name: {tool!r} "
                 "(must contain only alphanumeric, dash, dot, plus, underscore)"
             )
-        normalized = sorted(str(MatchSpec(s)) for s in specs)
+        normalized = sorted(str(MatchSpec(spec)) for spec in specs)
         blob = "|".join(normalized) + "||" + "|".join(sorted(channels))
-        h = hashlib.sha256(blob.encode()).hexdigest()[:16]
-        return f"{tool}--{h}"
+        key_hash = hashlib.sha256(blob.encode()).hexdigest()[:16]
+        return f"{tool}--{key_hash}"
 
     def prefix_for(self, key: str) -> Path:
         if len(key) > MAX_ENV_NAME_LEN:
@@ -196,9 +206,31 @@ class CacheManager:
             raise ValueError(f"cache key escapes envs directory: {key!r}")
         return prefix
 
+    def script_cache_key(self, metadata: ScriptMetadata) -> str:
+        """Compute a deterministic cache key for script metadata.
+
+        Returns ``script--{hash}`` where hash is the first 16 hex
+        characters of the SHA-256 of all dependency information.
+        """
+        parts = [
+            "|".join(sorted(metadata.conda_dependencies)),
+            "|".join(sorted(metadata.pypi_dependencies)),
+            "|".join(sorted(metadata.conda_channels)),
+            metadata.requires_python or "",
+        ]
+        blob = "||".join(parts)
+        key_hash = hashlib.sha256(blob.encode()).hexdigest()[:16]
+        return f"script--{key_hash}"
+
     def touch(self, prefix: Path) -> None:
-        """Update the history file mtime for staleness tracking."""
+        """Update the history file mtime for staleness tracking.
+
+        Skips the update if the file was touched within the last hour.
+        """
         try:
-            os.utime(prefix / "conda-meta" / "history")
+            history = prefix / "conda-meta" / "history"
+            if time.time() - history.stat().st_mtime < 3600:
+                return
+            os.utime(history)
         except FileNotFoundError:
             pass

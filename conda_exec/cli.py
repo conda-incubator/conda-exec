@@ -121,6 +121,8 @@ def configure_parser(parser: ArgumentParser) -> None:
 
 def execute(args: Namespace) -> int:
     """Dispatch to the appropriate handler based on mode flags."""
+    import sys
+
     if args.list_mode:
         from .list import execute_list
 
@@ -130,6 +132,17 @@ def execute(args: Namespace) -> int:
         from .clean import execute_clean
 
         return execute_clean(args)
+
+    if args.json_output:
+        print(
+            "conda exec: warning: --json is only used with --list",
+            file=sys.stderr,
+        )
+    if args.dry_run:
+        print(
+            "conda exec: warning: --dry-run is only used with --clean",
+            file=sys.stderr,
+        )
 
     from .execute import execute_run
 

@@ -55,10 +55,12 @@ def test_get_or_create_uses_cache(
     cm = CacheManager()
     key = "ruff--abcdef01"
 
-    prefix1 = cm.get_or_create(key, ["ruff"], ["conda-forge"])
+    prefix1, created1 = cm.get_or_create(key, ["ruff"], ["conda-forge"])
+    assert created1 is True
     assert len(solver_calls) == 1
 
-    prefix2 = cm.get_or_create(key, ["ruff"], ["conda-forge"])
+    prefix2, created2 = cm.get_or_create(key, ["ruff"], ["conda-forge"])
+    assert created2 is False
     assert len(solver_calls) == 1
     assert prefix1 == prefix2
 
@@ -68,7 +70,8 @@ def test_get_or_create_creates_on_miss(
     solver_calls: list[dict],
 ):
     cm = CacheManager()
-    prefix = cm.get_or_create("ruff--abcdef01", ["ruff"], ["conda-forge"])
+    prefix, created = cm.get_or_create("ruff--abcdef01", ["ruff"], ["conda-forge"])
+    assert created is True
     assert prefix.is_dir()
     assert (prefix / "conda-meta").is_dir()
     assert solver_calls[0]["specs"] == ["ruff"]
@@ -99,6 +102,19 @@ def test_touch_updates_history_mtime(tmp_path: Path):
     cm.touch(prefix)
 
     assert history.stat().st_mtime > old_time
+
+
+def test_touch_skips_recent(tmp_path: Path):
+    prefix = tmp_path / "envs" / "ruff--abcd1234"
+    (prefix / "conda-meta").mkdir(parents=True)
+    history = prefix / "conda-meta" / "history"
+    history.write_text("initial\n")
+
+    mtime_before = history.stat().st_mtime
+    cm = CacheManager(envs_dir=tmp_path / "envs")
+    cm.touch(prefix)
+
+    assert history.stat().st_mtime == mtime_before
 
 
 def test_cache_key_too_long(tmp_path: Path):
