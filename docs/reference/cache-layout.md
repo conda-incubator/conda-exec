@@ -18,16 +18,37 @@ conda-exec stores cached environments under a platform-specific data directory.
       ...
     ruff--b9e1c3d7/           # same tool, different specs (e.g. --with pytest)
       ...
+    script--c5b9979c/         # cached env for a script with inline deps
+      conda-meta/
+      bin/
+        python
 ```
 
 ## Cache key
 
-Each cached environment is identified by `{tool}--{hash}` where:
+### Tool cache key
+
+Each cached tool environment is identified by `{tool}--{hash}` where:
 
 - `tool` is the package name
 - `hash` is the first 16 hex characters of the SHA-256 of the normalized, sorted spec list and channel list
 
 Different version constraints, `--with` specs, or `--channel` values produce different cache keys.
+
+### Script cache key
+
+Script environments use the key format `script--{hash}` where `hash` is
+derived from the script's dependency metadata:
+
+- Sorted conda dependencies
+- Sorted PyPI dependencies
+- Sorted channels
+- `requires-python` value
+
+The hash is computed from the metadata content, not the file path or
+script code. Changing only the code without changing dependencies reuses
+the same cached environment. Two different scripts with identical
+dependency declarations share the same cached environment.
 
 ## Default path
 

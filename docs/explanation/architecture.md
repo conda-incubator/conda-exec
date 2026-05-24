@@ -6,17 +6,44 @@ conda-exec is a conda plugin that enables ephemeral package execution. It create
 
 ## Flow
 
+### Tool execution
+
 ```{mermaid}
 flowchart TD
     A["<b>conda exec ruff check .</b>"] --> B["<b>plugin.py</b><br>Register exec and x subcommands"]
-    B --> C["<b>cli/main.py</b><br>Parse args, dispatch to handler"]
-    C --> D["<b>cli/run.py</b><br>Extract tool name, build specs list"]
+    B --> C["<b>cli.py</b><br>Parse args, dispatch to handler"]
+    C --> D["<b>execute.py</b><br>Extract tool name, build specs list"]
     D --> E{"<b>cache.py</b><br>Compute cache key, check cache"}
     E -- cache hit --> F["<b>binaries.py</b><br>Find binary in prefix"]
     E -- cache miss --> G["<b>Solver + transaction</b><br>Create env in ~/.conda/exec/envs/"]
     G --> F
     F --> H["<b>run.py</b><br>subprocess.run with PATH prepend<br>(or full activation with --activate)"]
     H --> I(["Exit code forwarded"])
+```
+
+### Script execution
+
+When the tool argument is a path to an existing file, conda-exec switches
+to script mode:
+
+```{mermaid}
+flowchart TD
+    A["<b>conda exec script.py</b>"] --> B["<b>execute.py</b><br>Path(tool).is_file() → script mode"]
+    B --> C["<b>script.py</b><br>Parse PEP 723 metadata block"]
+    C --> D{Has dependencies?}
+    D -- no metadata --> E["<b>run_script_directly</b><br>Run with current Python"]
+    D -- has deps --> F{Has PyPI deps?}
+    F -- yes --> G{"conda-pypi available?"}
+    G -- no --> H(["Error: conda-pypi required"])
+    G -- yes --> I["Add conda-pypi channel"]
+    F -- no --> I
+    I --> J["<b>cache.py</b><br>Compute script cache key"]
+    J --> K{"Cache exists?"}
+    K -- hit --> L["<b>binaries.py</b><br>Find python in prefix"]
+    K -- miss --> M["<b>Solver + transaction</b><br>Resolve conda + PyPI deps together"]
+    M --> L
+    L --> N["<b>run.py</b><br>Run python script.py in prefix"]
+    N --> O(["Exit code forwarded"])
 ```
 
 ## Prior art
@@ -28,14 +55,15 @@ has come up several times in the conda ecosystem:
 
 [conda-execute](https://github.com/conda-tools/conda-execute) by Phil Elson
 allowed running Python scripts with inline dependency declarations embedded
-in comments (similar to what [PEP 723](https://peps.python.org/pep-0723/)
-and `uv run` do today). It created temporary environments from those inline
-specs and cached them by hash. The project has been unmaintained since 2019
+in YAML comments. It created temporary environments from those inline specs
+and cached them by hash. The project has been unmaintained since 2019
 and its conda-forge feedstock is archived.
 
-conda-exec solves a different problem: running packaged CLI tools (not
-scripts with inline deps) from ephemeral environments, integrated as a
-conda plugin with subcommands (`conda exec` / `conda x`).
+conda-exec builds on this concept with two key differences: it supports
+both packaged CLI tools (`conda exec ruff`) and scripts with inline
+metadata (`conda exec script.py`), and it uses the now-standardized
+[PEP 723](https://peps.python.org/pep-0723/) TOML format instead of
+YAML, with a `[tool.conda]` extension for conda-native dependencies.
 
 ### conda issue #2379 (2016)
 
@@ -73,6 +101,45 @@ conda-exec fills the same role as these tools in their respective ecosystems:
 | [pipx run](https://pipx.pypa.io/) | Python (pip) | `pipx run black .` |
 | **conda exec** | **conda** | **`conda exec ruff check .`** |
 
+## PEP 723 and the `[tool.conda]` extension
+
+[PEP 723](https://peps.python.org/pep-0723/) standardizes inline script
+metadata in Python scripts using TOML in comment blocks. The standard
+`dependencies` field declares PyPI packages, and `requires-python`
+constrains the Python version.
+
+conda-exec extends this with a `[tool.conda]` table for conda-native
+dependencies:
+
+```python
+# /// script
+# requires-python = ">=3.12"
+# dependencies = ["requests"]
+#
+# [tool.conda]
+# channels = ["conda-forge", "bioconda"]
+# dependencies = ["samtools>=1.19"]
+# ///
+```
+
+When both PyPI and conda dependencies are declared, all packages are
+resolved together in a single environment solve. PyPI packages are
+resolved through the [conda-pypi](https://github.com/conda-incubator/conda-pypi)
+channel, which converts PyPI wheels into conda packages so the rattler
+solver can handle both in one pass.
+
+Scripts with only `[tool.conda].dependencies` work without conda-pypi.
+Scripts with only `dependencies` (PyPI) require conda-pypi to be installed.
+
+### Forward compatibility
+
+[PEP 725](https://peps.python.org/pep-0725/) (draft) and
+[PEP 804](https://peps.python.org/pep-0804/) (draft) are working toward
+a standardized way to declare non-PyPI dependencies (`[external]` table
+and a cross-ecosystem dependency name registry). When those PEPs are
+accepted, conda-exec can support both `[tool.conda]` and `[external]`
+simultaneously.
+
 ## Why not conda run?
 
 `conda run` uses `wrap_subprocess_call()` which generates activation shell scripts, captures output by default, and adds overhead. Most CLI tools don't need full conda activation. Direct `subprocess.run` with PATH prepended is simpler, faster, and avoids output-capture pitfalls.
@@ -97,4 +164,5 @@ conda-exec is one of several plugins that ship with conda-express (cx), a single
 | conda-workspaces | Multi-environment workspaces |
 | conda-global | Persistent global tools |
 | conda-completion | Shell tab completion |
+| conda-pypi | PyPI interop layer |
 | conda-exec | Ephemeral package execution |

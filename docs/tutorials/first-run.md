@@ -50,3 +50,8 @@ conda x ruff check .
 conda-exec created a cached environment at `~/.conda/exec/envs/ruff--<hash>/`.
 This environment is isolated and disposable. It is not on your PATH and does not affect
 your other conda environments.
+
+## Next steps
+
+conda-exec can also run Python scripts with inline dependency metadata.
+See the [Run a script](run-script.md) tutorial to learn how.

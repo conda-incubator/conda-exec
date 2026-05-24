@@ -16,4 +16,11 @@ Step-by-step guides for learning conda-exec.
 Get started with conda-exec by running your first command.
 :::
 
+:::{grid-item-card} {octicon}`file-code` Run a script
+:link: run-script
+:link-type: doc
+
+Run a Python script with inline dependency metadata.
+:::
+
 ::::

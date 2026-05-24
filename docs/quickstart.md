@@ -52,3 +52,32 @@ Use packages from other channels:
 ```bash
 conda exec -c bioconda samtools view file.bam
 ```
+
+## Run scripts
+
+Run a Python script that declares its dependencies inline using
+[PEP 723](https://peps.python.org/pep-0723/) metadata:
+
+```python
+# /// script
+# requires-python = ">=3.12"
+# dependencies = ["requests", "rich"]
+#
+# [tool.conda]
+# channels = ["conda-forge", "bioconda"]
+# dependencies = ["samtools>=1.19"]
+# ///
+
+import requests
+from rich import print
+print("Hello from conda exec!")
+```
+
+```bash
+conda exec script.py
+```
+
+conda-exec parses the inline metadata, creates a cached environment with all
+declared dependencies (both conda and PyPI), and runs the script.
+
+Scripts without metadata run directly with the current Python.

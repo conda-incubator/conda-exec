@@ -1,13 +1,13 @@
 # conda-exec
 
-Ephemeral package execution for conda. Run any conda package without installing it permanently.
+Ephemeral package execution for conda. Run any conda package without installing it permanently, or run Python scripts with inline dependency metadata.
 
 ```bash
 conda exec ruff check .
-conda x ruff check .
+conda exec script.py
 ```
 
-conda-exec creates a cached, isolated environment for the tool, runs it, and exits.
+conda-exec creates a cached, isolated environment, runs the tool or script, and exits.
 The environment is cached for fast re-use but is not on PATH and is fully disposable.
 Think [npx](https://docs.npmjs.com/cli/commands/npx) or
 [uvx](https://docs.astral.sh/uv/guides/tools/) for the conda ecosystem.
@@ -29,11 +29,12 @@ conda install -c conda-forge conda-exec
 ## Usage
 
 ```bash
-conda exec ruff check .                            # run ruff
+conda exec ruff check .                            # run a tool
 conda x ruff check .                               # short alias
 conda exec "ruff>=0.4" check .                     # pin a version
 conda exec --with pytest ruff check .              # add extra packages
 conda exec -c bioconda samtools view file.bam      # use a different channel
+conda exec script.py                               # run a script with inline deps
 ```
 
 ---
@@ -59,7 +60,7 @@ Walk through first runs, caching, and advanced specs.
 :link: how-to/index
 :link-type: doc
 
-Manage cached environments, force refresh, clean up disk.
+Run scripts, manage cached environments, and clean up disk.
 :::
 
 :::{grid-item-card} {octicon}`terminal` CLI reference
@@ -98,12 +99,14 @@ quickstart
 :caption: Tutorials
 
 First run <tutorials/first-run>
+Run a script <tutorials/run-script>
 ```
 
 ```{toctree}
 :hidden:
 :caption: How-to guides
 
+Run scripts <how-to/run-scripts>
 Manage cache <how-to/manage-cache>
 ```
 

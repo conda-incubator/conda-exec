@@ -2,12 +2,14 @@
 
 ## conda exec / conda x
 
-Run a command from a conda package without installing it permanently.
+Run a command from a conda package or a Python script without installing
+dependencies permanently.
 
 ### Synopsis
 
-```
+```text
 conda exec [OPTIONS] TOOL [TOOL_ARGS...]
+conda exec [OPTIONS] SCRIPT.py [SCRIPT_ARGS...]
 conda x [OPTIONS] TOOL [TOOL_ARGS...]
 conda exec --list [--json]
 conda exec --clean [OPTIONS] [TOOL]
@@ -36,10 +38,10 @@ conda exec --clean [OPTIONS] [TOOL]
 ### Arguments
 
 `TOOL`
-: Package to run, as a name or full match spec (e.g. `ruff` or `ruff>=0.4`). The binary name is extracted from the match spec automatically.
+: Package to run, as a name or full match spec (e.g. `ruff` or `ruff>=0.4`). The binary name is extracted from the match spec automatically. If the argument is a path to an existing file, conda-exec runs it as a Python script instead (see [Script mode](#script-mode) below).
 
 `TOOL_ARGS`
-: Arguments passed through to the tool. Use `--` to separate conda-exec options from tool options.
+: Arguments passed through to the tool or script. Use `--` to separate conda-exec options from tool options.
 
 ### Examples
 
@@ -65,6 +67,62 @@ conda exec --activate samtools view file.bam
 
 # Separate tool args with --
 conda exec ruff -- --config pyproject.toml check .
+```
+
+(script-mode)=
+
+## Script mode
+
+When the `TOOL` argument is a path to an existing file, conda-exec runs
+it as a Python script. If the script contains a
+[PEP 723](https://peps.python.org/pep-0723/) metadata block, conda-exec
+parses the declared dependencies and creates a cached environment for them.
+
+### Metadata format
+
+```python
+# /// script
+# requires-python = ">=3.12"
+# dependencies = ["requests", "rich"]
+#
+# [tool.conda]
+# channels = ["conda-forge", "bioconda"]
+# dependencies = ["samtools>=1.19"]
+# ///
+```
+
+`requires-python`
+: Python version constraint (optional). Translated to a `python` spec
+  in the environment solve.
+
+`dependencies`
+: PyPI package dependencies (PEP 723 standard field). Requires
+  [conda-pypi](https://github.com/conda-incubator/conda-pypi)
+  to be installed. The `conda-pypi` channel is added automatically.
+
+`[tool.conda].dependencies`
+: Conda package dependencies as match specs.
+
+`[tool.conda].channels`
+: Conda channels to search. Defaults to `conda-forge` if not specified.
+
+### Script examples
+
+```bash
+# Run a script with inline deps
+conda exec script.py
+
+# Pass arguments to the script
+conda exec script.py --verbose output.txt
+
+# Separate conda-exec options from script args
+conda exec --with numpy script.py -- --flag value
+
+# Force re-creation of the script environment
+conda exec --refresh script.py
+
+# Script without metadata (runs with current Python)
+conda exec hello.py
 ```
 
 ## conda exec --list
