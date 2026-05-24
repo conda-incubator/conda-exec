@@ -1,5 +1,10 @@
 # conda-exec
 
+[![Tests](https://github.com/jezdez/conda-exec/actions/workflows/tests.yml/badge.svg)](https://github.com/jezdez/conda-exec/actions/workflows/tests.yml)
+[![Documentation](https://github.com/jezdez/conda-exec/actions/workflows/docs.yml/badge.svg)](https://jezdez.github.io/conda-exec/)
+[![License: BSD-3-Clause](https://img.shields.io/badge/license-BSD--3--Clause-blue.svg)](https://github.com/jezdez/conda-exec/blob/main/LICENSE)
+[![Python: 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://python.org)
+
 Ephemeral package execution for conda. Run any conda package without installing it permanently.
 
 ```bash
@@ -34,6 +39,9 @@ conda exec --with "python=3.12" jupyter lab
 # Use a specific channel
 conda exec -c bioconda samtools view file.bam
 
+# Run a script with inline dependencies (PEP 723)
+conda exec script.py
+
 # Force re-creation of cached environment
 conda exec --refresh ruff check .
 ```
@@ -46,6 +54,18 @@ conda exec --refresh ruff check .
 4. Finds the binary in the environment's `bin/` directory
 5. Runs it directly via `subprocess.run` with PATH prepended
 6. Forwards the tool's exit code
+
+## Documentation
+
+Full documentation at [jezdez.github.io/conda-exec](https://jezdez.github.io/conda-exec/).
+
+## Contributing
+
+```bash
+pixi install
+pixi run check          # lint + format + typecheck
+pixi run -e test test   # run tests
+```
 
 ## License
 
