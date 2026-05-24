@@ -28,11 +28,13 @@ The first invocation creates a cached environment. Subsequent runs reuse the cac
 
 ## Version constraints
 
-Pin a specific version:
+Pin a specific version using a match spec as the tool argument:
 
 ```bash
-conda exec --spec "ruff>=0.4,<0.5" ruff check .
+conda exec "ruff>=0.4,<0.5" check .
 ```
+
+The binary name is extracted from the match spec automatically.
 
 ## Extra packages
 

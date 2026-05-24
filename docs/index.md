@@ -31,9 +31,9 @@ conda install -c conda-forge conda-exec
 ```bash
 conda exec ruff check .                            # run ruff
 conda x ruff check .                               # short alias
-conda exec --spec "ruff>=0.4" ruff check .          # pin a version
-conda exec --with pytest ruff check .               # add extra packages
-conda exec -c bioconda samtools view file.bam       # use a different channel
+conda exec "ruff>=0.4" check .                     # pin a version
+conda exec --with pytest ruff check .              # add extra packages
+conda exec -c bioconda samtools view file.bam      # use a different channel
 ```
 
 ---

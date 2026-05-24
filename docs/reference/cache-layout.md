@@ -25,9 +25,9 @@ conda-exec stores cached environments under a platform-specific data directory.
 Each cached environment is identified by `{tool}--{hash}` where:
 
 - `tool` is the package name
-- `hash` is the first 8 characters of the SHA-256 of the normalized, sorted spec list and channel list
+- `hash` is the first 16 hex characters of the SHA-256 of the normalized, sorted spec list and channel list
 
-Different `--spec`, `--with`, or `--channel` values produce different cache keys.
+Different version constraints, `--with` specs, or `--channel` values produce different cache keys.
 
 ## Default path
 

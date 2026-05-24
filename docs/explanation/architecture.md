@@ -9,13 +9,13 @@ conda-exec is a conda plugin that enables ephemeral package execution. It create
 ```{mermaid}
 flowchart TD
     A["<b>conda exec ruff check .</b>"] --> B["<b>plugin.py</b><br>Register exec and x subcommands"]
-    B --> C["<b>cli/main.py</b><br>Parse args: tool, --spec, --with, --channel"]
-    C --> D["<b>specs.py</b><br>Normalize specs, compute cache key hash"]
-    D --> E{"<b>cache.py</b><br>Cached env exists?"}
+    B --> C["<b>cli/main.py</b><br>Parse args, dispatch to handler"]
+    C --> D["<b>cli/run.py</b><br>Extract tool name, build specs list"]
+    D --> E{"<b>cache.py</b><br>Compute cache key, check cache"}
     E -- cache hit --> F["<b>binaries.py</b><br>Find binary in prefix"]
     E -- cache miss --> G["<b>Solver + transaction</b><br>Create env in ~/.conda/exec/envs/"]
     G --> F
-    F --> H["<b>run.py</b><br>subprocess.run with PATH prepend"]
+    F --> H["<b>run.py</b><br>subprocess.run with PATH prepend<br>(or full activation with --activate)"]
     H --> I(["Exit code forwarded"])
 ```
 

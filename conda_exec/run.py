@@ -18,6 +18,8 @@ def build_activated_env(prefix: Path) -> dict[str, str]:
     from conda.activate import CmdExeActivator, PosixActivator
     from conda.common.compat import on_win
 
+    # We only use build_activate() for its env var dicts, not shell scripts,
+    # so the specific activator class only affects OS path conventions.
     activator_cls = CmdExeActivator if on_win else PosixActivator
     activator = activator_cls()
     activation = activator.build_activate(str(prefix))

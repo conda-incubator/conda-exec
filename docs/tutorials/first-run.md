@@ -16,7 +16,13 @@ Let's run `ruff`, a fast Python linter:
 conda exec ruff check .
 ```
 
-On the first run, conda-exec:
+On the first run, you will see a progress message while the environment is created:
+
+```text
+Creating environment for ruff... done (3.2s)
+```
+
+conda-exec:
 
 1. Solves the environment (finding `ruff` and its dependencies)
 2. Downloads and installs packages into a cache directory
@@ -29,7 +35,7 @@ On the first run, conda-exec:
 conda exec ruff check .
 ```
 
-This time it starts instantly because the cached environment already exists.
+This time it starts instantly with no progress message because the cached environment already exists.
 
 ## Step 3: Try the short alias
 
