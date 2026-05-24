@@ -29,7 +29,7 @@ def test_exec_end_to_end_binary_not_found(conda_cli: CondaCLIFixture):
 
 @pytest.mark.usefixtures("exec_home")
 def test_exec_end_to_end_with_binary(conda_cli: CondaCLIFixture):
-    out, err, code = conda_cli("exec", "jq", "--", "--help")
+    out, err, code = conda_cli("exec", "ruff", "--", "--help")
     assert code == 0
 
 

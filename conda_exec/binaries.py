@@ -31,11 +31,12 @@ def find_binary(prefix: Path, name: str) -> Path | None:
         return None
 
     if on_win:
-        for ext in (*WIN_EXTENSIONS, ""):
-            candidate = bin_dir / f"{name}{ext}"
-            if candidate.is_file():
-                if is_within_prefix(candidate, resolved_prefix):
-                    return candidate
+        for search_dir in (bin_dir, prefix):
+            for ext in (*WIN_EXTENSIONS, ""):
+                candidate = search_dir / f"{name}{ext}"
+                if candidate.is_file():
+                    if is_within_prefix(candidate, resolved_prefix):
+                        return candidate
     else:
         candidate = bin_dir / name
         if candidate.is_file():

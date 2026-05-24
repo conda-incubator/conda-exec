@@ -58,6 +58,14 @@ def test_find_binary_windows(win_prefix: Path, ext: str):
     assert result.stem == "ruff"
 
 
+def test_find_binary_windows_prefix_root(win_prefix: Path):
+    (win_prefix / "python.exe").write_text("")
+    result = find_binary(win_prefix, "python")
+    assert result is not None
+    assert result.name == "python.exe"
+    assert result.parent == win_prefix
+
+
 @pytest.mark.skipif(sys.platform == "win32", reason="chmod +x is a no-op on Windows")
 def test_discover_binaries_unix(unix_prefix: Path, executable: Callable[[Path], None]):
     executable(unix_prefix / "bin" / "alpha")
