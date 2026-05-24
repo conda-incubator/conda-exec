@@ -13,18 +13,43 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 
-def run_in_prefix(prefix: Path, binary: Path, args: list[str]) -> int:
-    """Execute a binary from a conda prefix with PATH set correctly.
+def build_activated_env(prefix: Path) -> dict[str, str]:
+    """Build a subprocess environment with conda activation applied."""
+    from conda.activate import CmdExeActivator, PosixActivator
+    from conda.common.compat import on_win
 
-    Prepends the prefix's bin directory to PATH so the tool can find
-    sibling executables. Runs the tool directly via subprocess.run
-    with no shell, no output capture, and no activation overhead.
+    activator_cls = CmdExeActivator if on_win else PosixActivator
+    activator = activator_cls()
+    activation = activator.build_activate(str(prefix))
+
+    env = os.environ.copy()
+    env.update(activation.get("export_vars", {}))
+    for var in activation.get("unset_vars", []):
+        env.pop(var, None)
+    return env
+
+
+def run_in_prefix(
+    prefix: Path,
+    binary: Path,
+    args: list[str],
+    *,
+    activate: bool = False,
+) -> int:
+    """Execute a binary from a conda prefix.
+
+    When activate is False (default), prepends the prefix's bin directory
+    to PATH. When activate is True, applies full conda activation
+    (CONDA_PREFIX, custom env vars, etc.).
 
     Returns the tool's exit code.
     """
-    bin_dir = str(prefix / BIN_DIRECTORY)
-    env = os.environ.copy()
-    env["PATH"] = bin_dir + os.pathsep + env.get("PATH", "")
+    if activate:
+        env = build_activated_env(prefix)
+    else:
+        bin_dir = str(prefix / BIN_DIRECTORY)
+        env = os.environ.copy()
+        env["PATH"] = bin_dir + os.pathsep + env.get("PATH", "")
 
     try:
         result = subprocess.run(

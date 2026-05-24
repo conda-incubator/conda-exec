@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sys
+import time
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -43,13 +44,27 @@ def execute_run(args: Namespace) -> int:
         if args.refresh:
             cache.remove(key)
 
+        cached = cache.exists(key)
+        if not cached:
+            print(
+                f"Creating environment for {name}...",
+                end="",
+                file=sys.stderr,
+                flush=True,
+            )
+            t0 = time.monotonic()
+
         prefix = cache.get_or_create(key, specs, channels)
+
+        if not cached:
+            elapsed = time.monotonic() - t0
+            print(f" done ({elapsed:.1f}s)", file=sys.stderr, flush=True)
 
         binary = find_binary(prefix, name)
         if binary is None:
             raise BinaryNotFoundError(name, str(prefix))
 
-        return run_in_prefix(prefix, binary, tool_args)
+        return run_in_prefix(prefix, binary, tool_args, activate=args.activate)
 
     except CondaExecError as exc:
         print(f"conda exec: {exc.error_message}", file=sys.stderr)

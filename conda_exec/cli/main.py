@@ -38,6 +38,15 @@ def configure_parser(parser: ArgumentParser) -> None:
         ),
     )
     parser.add_argument(
+        "--activate",
+        action="store_true",
+        default=False,
+        help=(
+            "Activate the environment before running the tool "
+            "(sets CONDA_PREFIX, etc.)."
+        ),
+    )
+    parser.add_argument(
         "--refresh",
         action="store_true",
         default=False,

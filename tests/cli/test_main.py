@@ -55,6 +55,16 @@ def test_parse_with_specs(parser: ArgumentParser):
     assert args.tool == "ruff"
 
 
+def test_parse_activate(parser: ArgumentParser):
+    args = parser.parse_args(["--activate", "ruff"])
+    assert args.activate is True
+
+
+def test_parse_no_activate_default(parser: ArgumentParser):
+    args = parser.parse_args(["ruff"])
+    assert args.activate is False
+
+
 def test_parse_refresh(parser: ArgumentParser):
     args = parser.parse_args(["--refresh", "ruff"])
     assert args.refresh is True
@@ -72,6 +82,7 @@ def test_parse_all_options(parser: ArgumentParser):
             "bioconda",
             "--with",
             "pytest",
+            "--activate",
             "--refresh",
             "ruff>=0.4",
             "check",
@@ -80,6 +91,7 @@ def test_parse_all_options(parser: ArgumentParser):
     )
     assert args.channels == ["bioconda"]
     assert args.with_specs == ["pytest"]
+    assert args.activate is True
     assert args.refresh is True
     assert args.tool == "ruff>=0.4"
     assert args.tool_args == ["check", "."]
@@ -255,6 +267,77 @@ def test_execute_run_binary_not_found(
     err = capsys.readouterr().err
     assert "not found" in err
     assert "hint:" in err
+
+
+def test_execute_run_passes_activate(
+    parser: ArgumentParser,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    received_kwargs: list[dict] = []
+    monkeypatch.setattr(
+        "conda_exec.run.run_in_prefix",
+        lambda prefix, binary, args, **kw: (received_kwargs.append(kw), 0)[1],
+    )
+    monkeypatch.setattr(
+        "conda_exec.cache.CacheManager.get_or_create",
+        lambda self, key, specs, channels: __import__("pathlib").Path("/fake"),
+    )
+    monkeypatch.setattr(
+        "conda_exec.binaries.find_binary",
+        lambda prefix, name: __import__("pathlib").Path("/fake/bin/ruff"),
+    )
+    args = parser.parse_args(["--activate", "ruff"])
+    rc = execute_run(args)
+    assert rc == 0
+    assert received_kwargs[0]["activate"] is True
+
+
+def test_execute_run_progress_on_cache_miss(
+    parser: ArgumentParser,
+    capsys: pytest.CaptureFixture,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setattr("conda_exec.cache.CacheManager.exists", lambda self, key: False)
+    monkeypatch.setattr(
+        "conda_exec.cache.CacheManager.get_or_create",
+        lambda self, key, specs, channels: __import__("pathlib").Path("/fake"),
+    )
+    monkeypatch.setattr(
+        "conda_exec.binaries.find_binary",
+        lambda prefix, name: __import__("pathlib").Path("/fake/bin/ruff"),
+    )
+    monkeypatch.setattr(
+        "conda_exec.run.run_in_prefix", lambda prefix, binary, args, **kw: 0
+    )
+    args = parser.parse_args(["ruff"])
+    rc = execute_run(args)
+    assert rc == 0
+    err = capsys.readouterr().err
+    assert "Creating environment for ruff..." in err
+    assert "done" in err
+
+
+def test_execute_run_no_progress_on_cache_hit(
+    parser: ArgumentParser,
+    capsys: pytest.CaptureFixture,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setattr("conda_exec.cache.CacheManager.exists", lambda self, key: True)
+    monkeypatch.setattr(
+        "conda_exec.cache.CacheManager.get_or_create",
+        lambda self, key, specs, channels: __import__("pathlib").Path("/fake"),
+    )
+    monkeypatch.setattr(
+        "conda_exec.binaries.find_binary",
+        lambda prefix, name: __import__("pathlib").Path("/fake/bin/ruff"),
+    )
+    monkeypatch.setattr(
+        "conda_exec.run.run_in_prefix", lambda prefix, binary, args, **kw: 0
+    )
+    args = parser.parse_args(["ruff"])
+    rc = execute_run(args)
+    assert rc == 0
+    assert capsys.readouterr().err == ""
 
 
 def test_execute_run_conda_exec_error(
