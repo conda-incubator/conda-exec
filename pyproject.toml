@@ -101,6 +101,8 @@ pre-commit = ">=4.0"
 [tool.pixi.feature.test.dependencies]
 pytest = ">=8.0"
 pytest-cov = ">=4.0"
+pytest-subprocess = ">=1.5"
+time-machine = ">=2.0"
 
 [tool.pixi.feature.docs.dependencies]
 sphinx = ">=7.0"

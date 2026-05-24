@@ -96,11 +96,11 @@ def test_execute_clean_empty(
 def test_execute_clean_all_with_yes(
     capsys: pytest.CaptureFixture,
     monkeypatch: pytest.MonkeyPatch,
-    make_entry: Callable[..., CacheEntry],
+    cache_entry: Callable[..., CacheEntry],
 ):
     entries = [
-        make_entry(tool="ruff", key="ruff--abcd1234"),
-        make_entry(tool="samtools", key="samtools--ef567890"),
+        cache_entry(tool="ruff", key="ruff--abcd1234"),
+        cache_entry(tool="samtools", key="samtools--ef567890"),
     ]
     removed: list[str] = []
     monkeypatch.setattr(
@@ -124,11 +124,11 @@ def test_execute_clean_all_with_yes(
 def test_execute_clean_older_than_with_yes(
     capsys: pytest.CaptureFixture,
     monkeypatch: pytest.MonkeyPatch,
-    make_entry: Callable[..., CacheEntry],
+    cache_entry: Callable[..., CacheEntry],
 ):
     entries = [
-        make_entry(tool="ruff", key="ruff--abcd1234", age_days=2),
-        make_entry(tool="samtools", key="samtools--ef567890", age_days=40),
+        cache_entry(tool="ruff", key="ruff--abcd1234", age_days=2),
+        cache_entry(tool="samtools", key="samtools--ef567890", age_days=40),
     ]
     removed: list[str] = []
     monkeypatch.setattr(
@@ -149,11 +149,11 @@ def test_execute_clean_older_than_with_yes(
 def test_execute_clean_tool_filter_with_yes(
     capsys: pytest.CaptureFixture,
     monkeypatch: pytest.MonkeyPatch,
-    make_entry: Callable[..., CacheEntry],
+    cache_entry: Callable[..., CacheEntry],
 ):
     entries = [
-        make_entry(tool="ruff", key="ruff--abcd1234", age_days=40),
-        make_entry(tool="samtools", key="samtools--ef567890", age_days=40),
+        cache_entry(tool="ruff", key="ruff--abcd1234", age_days=40),
+        cache_entry(tool="samtools", key="samtools--ef567890", age_days=40),
     ]
     removed: list[str] = []
     monkeypatch.setattr(
@@ -174,10 +174,10 @@ def test_execute_clean_tool_filter_with_yes(
 def test_execute_clean_dry_run(
     capsys: pytest.CaptureFixture,
     monkeypatch: pytest.MonkeyPatch,
-    make_entry: Callable[..., CacheEntry],
+    cache_entry: Callable[..., CacheEntry],
 ):
     entries = [
-        make_entry(tool="ruff", key="ruff--abcd1234", age_days=40),
+        cache_entry(tool="ruff", key="ruff--abcd1234", age_days=40),
     ]
     removed: list[str] = []
     monkeypatch.setattr(
@@ -202,10 +202,10 @@ def test_execute_clean_dry_run(
 def test_execute_clean_nothing_matches(
     capsys: pytest.CaptureFixture,
     monkeypatch: pytest.MonkeyPatch,
-    make_entry: Callable[..., CacheEntry],
+    cache_entry: Callable[..., CacheEntry],
 ):
     entries = [
-        make_entry(tool="ruff", key="ruff--abcd1234", age_days=2),
+        cache_entry(tool="ruff", key="ruff--abcd1234", age_days=2),
     ]
     monkeypatch.setattr(
         "conda_exec.cache.CacheManager.list_cached", lambda self: entries
@@ -221,12 +221,12 @@ def test_execute_clean_nothing_matches(
 def test_execute_clean_all_with_tool_filter(
     capsys: pytest.CaptureFixture,
     monkeypatch: pytest.MonkeyPatch,
-    make_entry: Callable[..., CacheEntry],
+    cache_entry: Callable[..., CacheEntry],
 ):
     entries = [
-        make_entry(tool="ruff", key="ruff--abcd1234"),
-        make_entry(tool="ruff", key="ruff--beef9876"),
-        make_entry(tool="samtools", key="samtools--ef567890"),
+        cache_entry(tool="ruff", key="ruff--abcd1234"),
+        cache_entry(tool="ruff", key="ruff--beef9876"),
+        cache_entry(tool="samtools", key="samtools--ef567890"),
     ]
     removed: list[str] = []
     monkeypatch.setattr(
@@ -273,10 +273,10 @@ def test_execute_clean_skips_entry_without_last_modified(
 def test_execute_clean_prompts_without_yes(
     capsys: pytest.CaptureFixture,
     monkeypatch: pytest.MonkeyPatch,
-    make_entry: Callable[..., CacheEntry],
+    cache_entry: Callable[..., CacheEntry],
 ):
     entries = [
-        make_entry(tool="ruff", key="ruff--abcd1234", age_days=40),
+        cache_entry(tool="ruff", key="ruff--abcd1234", age_days=40),
     ]
     removed: list[str] = []
     monkeypatch.setattr(
@@ -301,12 +301,12 @@ def test_execute_clean_prompts_without_yes(
 def test_execute_clean_prompt_declined(
     capsys: pytest.CaptureFixture,
     monkeypatch: pytest.MonkeyPatch,
-    make_entry: Callable[..., CacheEntry],
+    cache_entry: Callable[..., CacheEntry],
 ):
     from conda.exceptions import CondaSystemExit
 
     entries = [
-        make_entry(tool="ruff", key="ruff--abcd1234", age_days=40),
+        cache_entry(tool="ruff", key="ruff--abcd1234", age_days=40),
     ]
     removed: list[str] = []
     monkeypatch.setattr(
@@ -332,10 +332,10 @@ def test_execute_clean_prompt_declined(
 
 def test_execute_clean_prompt_eof(
     monkeypatch: pytest.MonkeyPatch,
-    make_entry: Callable[..., CacheEntry],
+    cache_entry: Callable[..., CacheEntry],
 ):
     entries = [
-        make_entry(tool="ruff", key="ruff--abcd1234", age_days=40),
+        cache_entry(tool="ruff", key="ruff--abcd1234", age_days=40),
     ]
     monkeypatch.setattr(
         "conda_exec.cache.CacheManager.list_cached", lambda self: entries

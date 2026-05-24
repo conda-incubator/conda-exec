@@ -12,9 +12,9 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 
-def test_cache_manager_default_envs_dir(mock_exec_home: Path):
+def test_cache_manager_default_envs_dir(exec_home: Path):
     cm = CacheManager()
-    assert cm.envs_dir == mock_exec_home / "envs"
+    assert cm.envs_dir == exec_home / "envs"
 
 
 def test_cache_manager_custom_envs_dir(tmp_path: Path):
@@ -49,7 +49,7 @@ def test_remove_nonexistent(tmp_path: Path):
 
 
 def test_get_or_create_uses_cache(
-    mock_exec_home: Path,
+    exec_home: Path,
     solver_calls: list[dict],
 ):
     cm = CacheManager()
@@ -64,7 +64,7 @@ def test_get_or_create_uses_cache(
 
 
 def test_get_or_create_creates_on_miss(
-    mock_exec_home: Path,
+    exec_home: Path,
     solver_calls: list[dict],
 ):
     cm = CacheManager()

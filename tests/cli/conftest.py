@@ -15,10 +15,10 @@ if TYPE_CHECKING:
 
 
 @pytest.fixture()
-def make_entry() -> Callable[..., CacheEntry]:
-    """Factory fixture that builds CacheEntry instances for testing."""
+def cache_entry() -> Callable[..., CacheEntry]:
+    """Factory fixture that builds CacheEntry instances."""
 
-    def _make(
+    def _build(
         tool: str = "ruff",
         key: str = "ruff--abcd1234",
         size: int = 45_000_000,
@@ -29,11 +29,11 @@ def make_entry() -> Callable[..., CacheEntry]:
         return CacheEntry(
             key=key,
             tool=tool,
-            prefix=Path(f"/fake/envs/{key}"),
+            prefix=Path(f"/tmp/envs/{key}"),
             created=now - timedelta(days=age_days + 1),
             last_modified=now - timedelta(days=age_days),
             size=size,
             package_count=package_count,
         )
 
-    return _make
+    return _build
