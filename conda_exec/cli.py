@@ -1,0 +1,136 @@
+"""CLI parser and dispatch for conda exec / conda x."""
+
+from __future__ import annotations
+
+from argparse import REMAINDER
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from argparse import ArgumentParser, Namespace
+
+
+def configure_parser(parser: ArgumentParser) -> None:
+    """Configure the argument parser for ``conda exec``."""
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument(
+        "--list",
+        action="store_true",
+        default=False,
+        dest="list_mode",
+        help="List cached environments.",
+    )
+    mode.add_argument(
+        "--clean",
+        action="store_true",
+        default=False,
+        dest="clean_mode",
+        help="Remove cached environments.",
+    )
+
+    parser.add_argument(
+        "-c",
+        "--channel",
+        action="append",
+        default=None,
+        dest="channels",
+        metavar="CHANNEL",
+        help="Additional channel to search (repeatable, default: conda-forge).",
+    )
+    parser.add_argument(
+        "--with",
+        action="append",
+        default=None,
+        dest="with_specs",
+        metavar="MATCHSPEC",
+        help=(
+            "Additional package to install in the ephemeral environment "
+            "(repeatable, full match spec). "
+            "Example: --with pytest --with 'python=3.12'"
+        ),
+    )
+    parser.add_argument(
+        "--activate",
+        action="store_true",
+        default=False,
+        help=(
+            "Activate the environment before running the tool "
+            "(sets CONDA_PREFIX, etc.)."
+        ),
+    )
+    parser.add_argument(
+        "--refresh",
+        action="store_true",
+        default=False,
+        help="Force re-creation of the cached environment.",
+    )
+
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        default=False,
+        dest="json_output",
+        help="Output as JSON (only with --list).",
+    )
+    parser.add_argument(
+        "--all",
+        action="store_true",
+        default=False,
+        dest="remove_all",
+        help="Remove all cached environments (only with --clean).",
+    )
+    parser.add_argument(
+        "--older-than",
+        type=int,
+        default=30,
+        metavar="DAYS",
+        help=(
+            "Remove environments not used in this many days "
+            "(default: 30, only with --clean)."
+        ),
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        default=False,
+        help="Show what would be removed without removing anything (--clean).",
+    )
+    parser.add_argument(
+        "-y",
+        "--yes",
+        action="store_true",
+        default=False,
+        help="Skip confirmation prompt (only with --clean).",
+    )
+
+    parser.add_argument(
+        "tool",
+        nargs="?",
+        default=None,
+        metavar="TOOL",
+        help=(
+            "Package to run, as a name or full matchspec (e.g. 'ruff' or 'ruff>=0.4')."
+        ),
+    )
+    parser.add_argument(
+        "tool_args",
+        nargs=REMAINDER,
+        metavar="ARGS",
+        help="Arguments passed through to the tool.",
+    )
+
+
+def execute(args: Namespace) -> int:
+    """Dispatch to the appropriate handler based on mode flags."""
+    if args.list_mode:
+        from .list import execute_list
+
+        return execute_list(args)
+
+    if args.clean_mode:
+        from .clean import execute_clean
+
+        return execute_clean(args)
+
+    from .execute import execute_run
+
+    return execute_run(args)

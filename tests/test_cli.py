@@ -1,4 +1,4 @@
-"""Tests for conda_exec.cli.main -- parser configuration and dispatch."""
+"""Tests for conda_exec.cli -- parser configuration and dispatch."""
 
 from __future__ import annotations
 
@@ -6,8 +6,8 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from conda_exec.cli.main import execute
-from conda_exec.cli.run import execute_run
+from conda_exec.cli import execute
+from conda_exec.execute import execute_run
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser
@@ -32,6 +32,14 @@ def test_parse_bare_tool(parser: ArgumentParser):
         (["ruff"], "activate", False),
         (["--refresh", "ruff"], "refresh", True),
         (["ruff"], "refresh", False),
+        (["--list"], "list_mode", True),
+        (["--list", "--json"], "json_output", True),
+        (["--clean"], "clean_mode", True),
+        (["--clean", "--all"], "remove_all", True),
+        (["--clean", "--older-than", "7"], "older_than", 7),
+        (["--clean", "--dry-run"], "dry_run", True),
+        (["--clean", "-y"], "yes", True),
+        (["--clean", "ruff"], "tool", "ruff"),
     ],
     ids=[
         "tool-with-args",
@@ -42,6 +50,14 @@ def test_parse_bare_tool(parser: ArgumentParser):
         "no-activate-default",
         "refresh",
         "no-refresh-default",
+        "list",
+        "list-json",
+        "clean",
+        "clean-all",
+        "clean-older-than",
+        "clean-dry-run",
+        "clean-yes",
+        "clean-tool-filter",
     ],
 )
 def test_parse_flag(
@@ -87,44 +103,17 @@ def test_parse_all_options(parser: ArgumentParser):
     assert args.tool_args == ["check", "."]
 
 
-@pytest.mark.parametrize(
-    ("argv", "expected_tool", "expected_args"),
-    [
-        (["list"], "list", []),
-        (["list", "--json"], "list", ["--json"]),
-        (["clean"], "clean", []),
-        (["clean", "--all"], "clean", ["--all"]),
-        (
-            ["clean", "--all", "--dry-run", "ruff"],
-            "clean",
-            ["--all", "--dry-run", "ruff"],
-        ),
-    ],
-    ids=[
-        "list-bare",
-        "list-json",
-        "clean-bare",
-        "clean-all",
-        "clean-with-options",
-    ],
-)
-def test_parse_subcommand(
-    parser: ArgumentParser,
-    argv: list[str],
-    expected_tool: str,
-    expected_args: list[str],
-):
-    args = parser.parse_args(argv)
-    assert args.tool == expected_tool
-    assert args.tool_args == expected_args
+def test_list_clean_mutually_exclusive(parser: ArgumentParser):
+    with pytest.raises(SystemExit):
+        parser.parse_args(["--list", "--clean"])
 
 
 @pytest.mark.parametrize(
     ("argv", "target", "label"),
     [
-        (["list"], "conda_exec.cli.list.execute_list", "list"),
-        (["clean"], "conda_exec.cli.clean.execute_clean", "clean"),
-        (["ruff"], "conda_exec.cli.run.execute_run", "run"),
+        (["--list"], "conda_exec.list.execute_list", "list"),
+        (["--clean"], "conda_exec.clean.execute_clean", "clean"),
+        (["ruff"], "conda_exec.execute.execute_run", "run"),
     ],
     ids=["list", "clean", "run"],
 )
@@ -143,28 +132,28 @@ def test_dispatch(
     assert calls == [label]
 
 
-def test_dispatch_list_parses_subcommand_args(
+def test_dispatch_list_passes_json(
     parser: ArgumentParser, monkeypatch: pytest.MonkeyPatch
 ):
     received_args: list = []
     monkeypatch.setattr(
-        "conda_exec.cli.list.execute_list",
+        "conda_exec.list.execute_list",
         lambda args: (received_args.append(args), 0)[1],
     )
-    args = parser.parse_args(["list", "--json"])
+    args = parser.parse_args(["--list", "--json"])
     execute(args)
     assert received_args[0].json_output is True
 
 
-def test_dispatch_clean_parses_subcommand_args(
+def test_dispatch_clean_passes_flags(
     parser: ArgumentParser, monkeypatch: pytest.MonkeyPatch
 ):
     received_args: list = []
     monkeypatch.setattr(
-        "conda_exec.cli.clean.execute_clean",
+        "conda_exec.clean.execute_clean",
         lambda args: (received_args.append(args), 0)[1],
     )
-    args = parser.parse_args(["clean", "--all", "--dry-run", "ruff"])
+    args = parser.parse_args(["--clean", "--all", "--dry-run", "ruff"])
     execute(args)
     assert received_args[0].remove_all is True
     assert received_args[0].dry_run is True

@@ -6,31 +6,33 @@
   `conda exec` (ephemeral package execution) and `conda x` (short
   alias). Both dispatch to the same CLI handler.
 
-- CLI modules live under `conda_exec/cli/`: `main.py` contains
-  parser configuration and dispatch.
+- All modules live at the package root. `cli.py` contains parser
+  configuration and dispatch. `execute.py` handles the run command.
+  `list.py` and `clean.py` handle `--list` and `--clean` flags.
+  `format.py` provides display formatting utilities.
 
-- Core modules at the package root handle distinct concerns:
-  `cache.py` (ephemeral environment lifecycle and cache key
-  hashing), `binaries.py` (executable discovery), `run.py`
-  (subprocess execution), `paths.py` (filesystem layout),
-  `exceptions.py` (all exceptions).
+- Other core modules handle distinct concerns: `cache.py`
+  (ephemeral environment lifecycle and cache key hashing),
+  `binaries.py` (executable discovery), `run.py` (subprocess
+  execution), `paths.py` (filesystem layout), `exceptions.py`
+  (all exceptions).
 
 - Tests mirror the source structure. Tests for
   `conda_exec/cache.py` live in `tests/test_cache.py`, tests for
-  `conda_exec/cli/main.py` live in `tests/cli/test_main.py`.
+  `conda_exec/cli.py` live in `tests/test_cli.py`.
 
 ## Imports
 
 - Use relative imports for all intra-package references
   (`from .cache import CacheManager`,
-  `from ..exceptions import SolveError`).
+  `from .exceptions import SolveError`).
   Absolute `conda_exec.*` imports should only appear in tests
   and entry points.
 
 - Inline (lazy) imports are reserved for performance-critical paths
   or optional dependencies. Acceptable cases: `plugin.py` hooks
-  (loaded on every `conda` invocation), `cli/main.py` subcommand
-  dispatch (only the chosen handler is loaded). Everywhere else,
+  (loaded on every `conda` invocation), `cli.py` command dispatch
+  (only the chosen handler is loaded). Everywhere else,
   imports belong at the top of the module.
 
 ## Dependencies

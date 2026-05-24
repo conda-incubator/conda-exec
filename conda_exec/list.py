@@ -7,25 +7,14 @@ from typing import TYPE_CHECKING
 from .format import format_age, format_size
 
 if TYPE_CHECKING:
-    from argparse import ArgumentParser, Namespace
-
-
-def configure_list_parser(parser: ArgumentParser) -> None:
-    """Configure the ``conda exec list`` argument parser."""
-    parser.add_argument(
-        "--json",
-        action="store_true",
-        default=False,
-        dest="json_output",
-        help="Output as JSON.",
-    )
+    from argparse import Namespace
 
 
 def execute_list(args: Namespace) -> int:
     """List cached tool environments."""
     import json
 
-    from ..cache import CacheManager
+    from .cache import CacheManager
 
     cache = CacheManager()
     entries = cache.list_cached()

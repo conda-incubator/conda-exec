@@ -1,36 +1,23 @@
-"""Tests for conda_exec.cli.list -- list command and formatting utilities."""
+"""Tests for conda_exec.list -- list command and formatting utilities."""
 
 from __future__ import annotations
 
 import json
-from argparse import ArgumentParser
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta, timezone
 from typing import TYPE_CHECKING
 
 import pytest
 import time_machine
 
-from conda_exec.cli.format import format_age, format_size
-from conda_exec.cli.list import configure_list_parser, execute_list
+from conda_exec.format import format_age, format_size
+from conda_exec.list import execute_list
 
 if TYPE_CHECKING:
+    from argparse import ArgumentParser
     from collections.abc import Callable
+    from datetime import datetime
 
     from conda_exec.cache import CacheEntry
-
-
-def test_list_parser_defaults():
-    p = ArgumentParser()
-    configure_list_parser(p)
-    args = p.parse_args([])
-    assert args.json_output is False
-
-
-def test_list_parser_json():
-    p = ArgumentParser()
-    configure_list_parser(p)
-    args = p.parse_args(["--json"])
-    assert args.json_output is True
 
 
 @pytest.mark.parametrize(
@@ -64,7 +51,9 @@ def test_format_age_none():
     assert format_age(None) == "unknown"
 
 
-FROZEN_NOW = datetime(2025, 6, 15, 12, 0, 0, tzinfo=timezone.utc)
+FROZEN_NOW: datetime = __import__("datetime").datetime(
+    2025, 6, 15, 12, 0, 0, tzinfo=timezone.utc
+)
 
 
 @pytest.mark.parametrize(
@@ -100,19 +89,19 @@ def test_format_age_naive_datetime():
 
 
 def test_execute_list_empty(
+    parser: ArgumentParser,
     capsys: pytest.CaptureFixture,
     monkeypatch: pytest.MonkeyPatch,
 ):
     monkeypatch.setattr("conda_exec.cache.CacheManager.list_cached", lambda self: [])
-    p = ArgumentParser()
-    configure_list_parser(p)
-    args = p.parse_args([])
+    args = parser.parse_args(["--list"])
     rc = execute_list(args)
     assert rc == 0
     assert "No cached environments." in capsys.readouterr().out
 
 
 def test_execute_list_table(
+    parser: ArgumentParser,
     capsys: pytest.CaptureFixture,
     monkeypatch: pytest.MonkeyPatch,
     cache_entry: Callable[..., CacheEntry],
@@ -132,9 +121,7 @@ def test_execute_list_table(
     monkeypatch.setattr(
         "conda_exec.cache.CacheManager.list_cached", lambda self: entries
     )
-    p = ArgumentParser()
-    configure_list_parser(p)
-    args = p.parse_args([])
+    args = parser.parse_args(["--list"])
     rc = execute_list(args)
     assert rc == 0
 
@@ -147,6 +134,7 @@ def test_execute_list_table(
 
 
 def test_execute_list_json(
+    parser: ArgumentParser,
     capsys: pytest.CaptureFixture,
     monkeypatch: pytest.MonkeyPatch,
     cache_entry: Callable[..., CacheEntry],
@@ -157,9 +145,7 @@ def test_execute_list_json(
     monkeypatch.setattr(
         "conda_exec.cache.CacheManager.list_cached", lambda self: entries
     )
-    p = ArgumentParser()
-    configure_list_parser(p)
-    args = p.parse_args(["--json"])
+    args = parser.parse_args(["--list", "--json"])
     rc = execute_list(args)
     assert rc == 0
 

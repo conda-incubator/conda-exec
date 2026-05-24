@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 def conda_subcommands() -> Iterable[CondaSubcommand]:
     from conda.plugins.types import CondaSubcommand
 
-    from .cli.main import configure_parser, execute
+    from .cli import configure_parser, execute
 
     yield CondaSubcommand(
         name="exec",

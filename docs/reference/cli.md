@@ -9,6 +9,8 @@ Run a command from a conda package without installing it permanently.
 ```
 conda exec [OPTIONS] TOOL [TOOL_ARGS...]
 conda x [OPTIONS] TOOL [TOOL_ARGS...]
+conda exec --list [--json]
+conda exec --clean [OPTIONS] [TOOL]
 ```
 
 ### Options
@@ -25,10 +27,16 @@ conda x [OPTIONS] TOOL [TOOL_ARGS...]
 `--refresh`
 : Force re-creation of the cached environment.
 
+`--list`
+: Show all cached environments (mutually exclusive with `--clean`).
+
+`--clean`
+: Remove cached environments (mutually exclusive with `--list`).
+
 ### Arguments
 
 `TOOL`
-: Package to run, as a name or full match spec (e.g. `ruff` or `ruff>=0.4`). The binary name is extracted from the match spec automatically. Use `list` to show cached environments or `clean` to remove them.
+: Package to run, as a name or full match spec (e.g. `ruff` or `ruff>=0.4`). The binary name is extracted from the match spec automatically.
 
 `TOOL_ARGS`
 : Arguments passed through to the tool. Use `--` to separate conda-exec options from tool options.
@@ -59,19 +67,19 @@ conda exec --activate samtools view file.bam
 conda exec ruff -- --config pyproject.toml check .
 ```
 
-## conda exec list
+## conda exec --list
 
 Show all cached environments.
 
 ```text
-conda exec list [--json]
+conda exec --list [--json]
 ```
 
 `--json`
 : Output as JSON instead of a table.
 
 ```bash
-conda exec list
+conda exec --list
 ```
 
 ```text
@@ -80,12 +88,12 @@ ruff       ruff--a3f8b2c1d9e0f4a7     42.9 MB   3         2 days ago
 samtools   samtools--7e2d9f04b1c3e8   114.4 MB  47         5 hours ago
 ```
 
-## conda exec clean
+## conda exec --clean
 
 Remove cached environments.
 
 ```text
-conda exec clean [--all] [--older-than DAYS] [--dry-run] [-y/--yes] [TOOL]
+conda exec --clean [--all] [--older-than DAYS] [--dry-run] [-y/--yes] [TOOL]
 ```
 
 `--all`
@@ -105,14 +113,14 @@ conda exec clean [--all] [--older-than DAYS] [--dry-run] [-y/--yes] [TOOL]
 
 ```bash
 # Remove environments unused for 30+ days (with confirmation)
-conda exec clean
+conda exec --clean
 
 # Preview what would be removed
-conda exec clean --dry-run
+conda exec --clean --dry-run
 
 # Remove everything, no prompt
-conda exec clean --all --yes
+conda exec --clean --all --yes
 
 # Remove only ruff caches older than 7 days
-conda exec clean --older-than 7 ruff
+conda exec --clean --older-than 7 ruff
 ```

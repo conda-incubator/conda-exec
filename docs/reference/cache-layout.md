@@ -52,4 +52,4 @@ conda-exec uses conda's own `PrefixData` API for staleness tracking:
 - `conda-meta/created_at`: records when the environment was created
 - `conda-meta/history` mtime: updated on each `conda exec` invocation
 
-The `conda exec clean` command reads `PrefixData.last_modified` to determine which environments are stale.
+The `conda exec --clean` command reads `PrefixData.last_modified` to determine which environments are stale.

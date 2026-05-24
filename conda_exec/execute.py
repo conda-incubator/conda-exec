@@ -16,17 +16,17 @@ def execute_run(args: Namespace) -> int:
     """Execute a tool from an ephemeral conda environment."""
     from conda.models.match_spec import MatchSpec
 
-    from ..binaries import find_binary
-    from ..cache import CacheManager
-    from ..exceptions import BinaryNotFoundError, CondaExecError
-    from ..run import run_in_prefix
+    from .binaries import find_binary
+    from .cache import CacheManager
+    from .exceptions import BinaryNotFoundError, CondaExecError
+    from .run import run_in_prefix
 
     tool = args.tool
     if not tool:
         print("conda exec: missing TOOL argument", file=sys.stderr)
         print("usage: conda exec [OPTIONS] TOOL [ARGS...]", file=sys.stderr)
-        print("       conda exec list", file=sys.stderr)
-        print("       conda exec clean", file=sys.stderr)
+        print("       conda exec --list", file=sys.stderr)
+        print("       conda exec --clean", file=sys.stderr)
         return 2
 
     name = MatchSpec(tool).name
