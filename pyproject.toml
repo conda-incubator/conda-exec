@@ -137,6 +137,7 @@ typecheck = { cmd = "ty check conda_exec", description = "Run type checker" }
 [tool.pixi.feature.test.tasks]
 test = { cmd = "pytest", description = "Run test suite" }
 test-cov = { cmd = "pytest --cov --cov-report=term-missing --cov-report=html --cov-report=xml", description = "Tests with coverage" }
+test-integration = { cmd = "pytest -m slow -v", description = "Run integration tests (requires network)" }
 
 [tool.pixi.tasks.check]
 depends-on = ["lint", "format-check", "typecheck"]
