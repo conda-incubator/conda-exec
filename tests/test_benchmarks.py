@@ -129,22 +129,22 @@ def test_bench_script_metadata_parse(
 
     script = tmp_path / "bench_script.py"
     script.write_text(
-        '# /// script\n'
+        "# /// script\n"
         '# requires-python = ">=3.12"\n'
-        '# dependencies = [\n'
+        "# dependencies = [\n"
         '#   "requests>=2.31",\n'
         '#   "rich",\n'
         '#   "click>=8.0",\n'
-        '# ]\n'
-        '#\n'
-        '# [tool.conda]\n'
+        "# ]\n"
+        "#\n"
+        "# [tool.conda]\n"
         '# channels = ["conda-forge", "bioconda"]\n'
-        '# dependencies = [\n'
+        "# dependencies = [\n"
         '#   "samtools>=1.19",\n'
         '#   "python=3.12",\n'
         '#   "numpy>=1.26",\n'
-        '# ]\n'
-        '# ///\n'
+        "# ]\n"
+        "# ///\n"
         'print("hello")\n'
     )
 

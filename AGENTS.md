@@ -167,6 +167,14 @@
 - Follow the Diataxis framework: tutorials, how-to guides, reference,
   and explanation sections.
 
+## Releases
+
+- Do NOT under any circumstance create tags, push tags, create GitHub
+  releases, or publish packages without explicit user approval. "Prepare
+  a release" means assembling changelogs, verifying infrastructure, and
+  reporting what steps the user needs to take. It does not mean executing
+  those steps.
+
 ## Lockfile maintenance
 
 - After any change to `pyproject.toml` that affects pixi metadata

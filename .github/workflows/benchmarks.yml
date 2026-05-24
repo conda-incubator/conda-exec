@@ -17,6 +17,7 @@ jobs:
   benchmark:
     name: Run benchmarks
     runs-on: ubuntu-latest
+    environment: benchmarks
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -26,7 +27,7 @@ jobs:
         with:
           environments: test
 
-      - uses: bencherdev/bencher@main
+      - uses: bencherdev/bencher@50fb1e138651a46d2fb704fab1adab38c181552e # v0.6.6
 
       - name: Run benchmarks
         run: pixi run -e test bench
