@@ -74,7 +74,7 @@ SUBCOMMANDS: dict[str, tuple[str, str, str]] = {
 }
 
 
-def execute(args: Namespace, parser: ArgumentParser) -> int:
+def execute(args: Namespace) -> int:
     """Dispatch to the appropriate handler based on the tool name."""
     from importlib import import_module
 

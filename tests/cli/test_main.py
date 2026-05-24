@@ -130,7 +130,7 @@ def test_dispatch_to_list(parser: ArgumentParser, monkeypatch: pytest.MonkeyPatc
         lambda args: (calls.append("list"), 0)[1],
     )
     args = parser.parse_args(["list"])
-    rc = execute(args, parser)
+    rc = execute(args)
     assert rc == 0
     assert calls == ["list"]
 
@@ -142,7 +142,7 @@ def test_dispatch_to_clean(parser: ArgumentParser, monkeypatch: pytest.MonkeyPat
         lambda args: (calls.append("clean"), 0)[1],
     )
     args = parser.parse_args(["clean"])
-    rc = execute(args, parser)
+    rc = execute(args)
     assert rc == 0
     assert calls == ["clean"]
 
@@ -153,7 +153,7 @@ def test_dispatch_to_run(parser: ArgumentParser, monkeypatch: pytest.MonkeyPatch
         "conda_exec.cli.main.execute_run", lambda args: (calls.append("run"), 0)[1]
     )
     args = parser.parse_args(["ruff"])
-    rc = execute(args, parser)
+    rc = execute(args)
     assert rc == 0
     assert calls == ["run"]
 
@@ -167,7 +167,7 @@ def test_dispatch_list_parses_subcommand_args(
         lambda args: (received_args.append(args), 0)[1],
     )
     args = parser.parse_args(["list", "--json"])
-    execute(args, parser)
+    execute(args)
     assert received_args[0].json_output is True
 
 
@@ -180,7 +180,7 @@ def test_dispatch_clean_parses_subcommand_args(
         lambda args: (received_args.append(args), 0)[1],
     )
     args = parser.parse_args(["clean", "--all", "--dry-run", "ruff"])
-    execute(args, parser)
+    execute(args)
     assert received_args[0].remove_all is True
     assert received_args[0].dry_run is True
     assert received_args[0].tool == "ruff"

@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING
 
 import pytest
 
+pytest_plugins = ["conda.testing.fixtures"]
+
 if TYPE_CHECKING:
     from collections.abc import Callable, Generator
     from pathlib import Path

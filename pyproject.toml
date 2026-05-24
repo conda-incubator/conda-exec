@@ -76,7 +76,8 @@ select = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-ra -v"
+addopts = "-ra -v -m 'not slow'"
+markers = ["slow: integration tests that require network and a solver"]
 
 [tool.ty.environment]
 python-version = "3.10"
