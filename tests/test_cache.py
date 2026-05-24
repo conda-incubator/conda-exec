@@ -85,21 +85,20 @@ def test_list_cached_nonexistent_dir(tmp_path: Path):
 
 
 def test_touch_updates_history_mtime(tmp_path: Path):
+    import os
+
     prefix = tmp_path / "envs" / "ruff--abcd1234"
     (prefix / "conda-meta").mkdir(parents=True)
     history = prefix / "conda-meta" / "history"
     history.write_text("initial\n")
 
-    import time
-
-    old_mtime = history.stat().st_mtime
-    time.sleep(0.05)
+    old_time = 1_000_000.0
+    os.utime(history, (old_time, old_time))
 
     cm = CacheManager(envs_dir=tmp_path / "envs")
     cm.touch(prefix)
 
-    new_mtime = history.stat().st_mtime
-    assert new_mtime > old_mtime
+    assert history.stat().st_mtime > old_time
 
 
 def test_cache_key_too_long(tmp_path: Path):

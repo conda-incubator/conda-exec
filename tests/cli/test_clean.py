@@ -7,19 +7,24 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import pytest
+
 from conda_exec.cache import CacheEntry
 from conda_exec.cli.clean import configure_clean_parser, execute_clean
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    import pytest
 
-
-def test_clean_parser_defaults():
+@pytest.fixture()
+def clean_parser() -> ArgumentParser:
     p = ArgumentParser()
     configure_clean_parser(p)
-    args = p.parse_args([])
+    return p
+
+
+def test_clean_parser_defaults(clean_parser: ArgumentParser):
+    args = clean_parser.parse_args([])
     assert args.remove_all is False
     assert args.older_than == 30
     assert args.dry_run is False
@@ -27,52 +32,32 @@ def test_clean_parser_defaults():
     assert args.tool is None
 
 
-def test_clean_parser_all():
-    p = ArgumentParser()
-    configure_clean_parser(p)
-    args = p.parse_args(["--all"])
-    assert args.remove_all is True
+@pytest.mark.parametrize(
+    ("argv", "attr", "expected"),
+    [
+        (["--all"], "remove_all", True),
+        (["--older-than", "7"], "older_than", 7),
+        (["--dry-run"], "dry_run", True),
+        (["--yes"], "yes", True),
+        (["-y"], "yes", True),
+        (["ruff"], "tool", "ruff"),
+    ],
+    ids=["all", "older-than", "dry-run", "yes", "yes-short", "tool"],
+)
+def test_clean_parser_flag(
+    clean_parser: ArgumentParser,
+    argv: list[str],
+    attr: str,
+    expected: object,
+):
+    args = clean_parser.parse_args(argv)
+    assert getattr(args, attr) == expected
 
 
-def test_clean_parser_older_than():
-    p = ArgumentParser()
-    configure_clean_parser(p)
-    args = p.parse_args(["--older-than", "7"])
-    assert args.older_than == 7
-
-
-def test_clean_parser_dry_run():
-    p = ArgumentParser()
-    configure_clean_parser(p)
-    args = p.parse_args(["--dry-run"])
-    assert args.dry_run is True
-
-
-def test_clean_parser_yes():
-    p = ArgumentParser()
-    configure_clean_parser(p)
-    args = p.parse_args(["--yes"])
-    assert args.yes is True
-
-
-def test_clean_parser_yes_short():
-    p = ArgumentParser()
-    configure_clean_parser(p)
-    args = p.parse_args(["-y"])
-    assert args.yes is True
-
-
-def test_clean_parser_tool():
-    p = ArgumentParser()
-    configure_clean_parser(p)
-    args = p.parse_args(["ruff"])
-    assert args.tool == "ruff"
-
-
-def test_clean_parser_all_options():
-    p = ArgumentParser()
-    configure_clean_parser(p)
-    args = p.parse_args(["--all", "--dry-run", "--older-than", "7", "-y", "ruff"])
+def test_clean_parser_all_options(clean_parser: ArgumentParser):
+    args = clean_parser.parse_args(
+        ["--all", "--dry-run", "--older-than", "7", "-y", "ruff"]
+    )
     assert args.remove_all is True
     assert args.dry_run is True
     assert args.older_than == 7
@@ -81,19 +66,19 @@ def test_clean_parser_all_options():
 
 
 def test_execute_clean_empty(
+    clean_parser: ArgumentParser,
     capsys: pytest.CaptureFixture,
     monkeypatch: pytest.MonkeyPatch,
 ):
     monkeypatch.setattr("conda_exec.cache.CacheManager.list_cached", lambda self: [])
-    p = ArgumentParser()
-    configure_clean_parser(p)
-    args = p.parse_args([])
+    args = clean_parser.parse_args([])
     rc = execute_clean(args)
     assert rc == 0
     assert "No cached environments to clean." in capsys.readouterr().out
 
 
 def test_execute_clean_all_with_yes(
+    clean_parser: ArgumentParser,
     capsys: pytest.CaptureFixture,
     monkeypatch: pytest.MonkeyPatch,
     cache_entry: Callable[..., CacheEntry],
@@ -110,9 +95,7 @@ def test_execute_clean_all_with_yes(
         "conda_exec.cache.CacheManager.remove",
         lambda self, key: removed.append(key),
     )
-    p = ArgumentParser()
-    configure_clean_parser(p)
-    args = p.parse_args(["--all", "--yes"])
+    args = clean_parser.parse_args(["--all", "--yes"])
     rc = execute_clean(args)
     assert rc == 0
     assert sorted(removed) == ["ruff--abcd1234", "samtools--ef567890"]
@@ -122,6 +105,7 @@ def test_execute_clean_all_with_yes(
 
 
 def test_execute_clean_older_than_with_yes(
+    clean_parser: ArgumentParser,
     capsys: pytest.CaptureFixture,
     monkeypatch: pytest.MonkeyPatch,
     cache_entry: Callable[..., CacheEntry],
@@ -138,15 +122,14 @@ def test_execute_clean_older_than_with_yes(
         "conda_exec.cache.CacheManager.remove",
         lambda self, key: removed.append(key),
     )
-    p = ArgumentParser()
-    configure_clean_parser(p)
-    args = p.parse_args(["--older-than", "30", "--yes"])
+    args = clean_parser.parse_args(["--older-than", "30", "--yes"])
     rc = execute_clean(args)
     assert rc == 0
     assert removed == ["samtools--ef567890"]
 
 
 def test_execute_clean_tool_filter_with_yes(
+    clean_parser: ArgumentParser,
     capsys: pytest.CaptureFixture,
     monkeypatch: pytest.MonkeyPatch,
     cache_entry: Callable[..., CacheEntry],
@@ -163,15 +146,14 @@ def test_execute_clean_tool_filter_with_yes(
         "conda_exec.cache.CacheManager.remove",
         lambda self, key: removed.append(key),
     )
-    p = ArgumentParser()
-    configure_clean_parser(p)
-    args = p.parse_args(["--yes", "ruff"])
+    args = clean_parser.parse_args(["--yes", "ruff"])
     rc = execute_clean(args)
     assert rc == 0
     assert removed == ["ruff--abcd1234"]
 
 
 def test_execute_clean_dry_run(
+    clean_parser: ArgumentParser,
     capsys: pytest.CaptureFixture,
     monkeypatch: pytest.MonkeyPatch,
     cache_entry: Callable[..., CacheEntry],
@@ -187,9 +169,7 @@ def test_execute_clean_dry_run(
         "conda_exec.cache.CacheManager.remove",
         lambda self, key: removed.append(key),
     )
-    p = ArgumentParser()
-    configure_clean_parser(p)
-    args = p.parse_args(["--dry-run"])
+    args = clean_parser.parse_args(["--dry-run"])
     rc = execute_clean(args)
     assert rc == 0
     assert removed == []
@@ -200,6 +180,7 @@ def test_execute_clean_dry_run(
 
 
 def test_execute_clean_nothing_matches(
+    clean_parser: ArgumentParser,
     capsys: pytest.CaptureFixture,
     monkeypatch: pytest.MonkeyPatch,
     cache_entry: Callable[..., CacheEntry],
@@ -210,15 +191,14 @@ def test_execute_clean_nothing_matches(
     monkeypatch.setattr(
         "conda_exec.cache.CacheManager.list_cached", lambda self: entries
     )
-    p = ArgumentParser()
-    configure_clean_parser(p)
-    args = p.parse_args(["--older-than", "30"])
+    args = clean_parser.parse_args(["--older-than", "30"])
     rc = execute_clean(args)
     assert rc == 0
     assert "Nothing to clean." in capsys.readouterr().out
 
 
 def test_execute_clean_all_with_tool_filter(
+    clean_parser: ArgumentParser,
     capsys: pytest.CaptureFixture,
     monkeypatch: pytest.MonkeyPatch,
     cache_entry: Callable[..., CacheEntry],
@@ -236,9 +216,7 @@ def test_execute_clean_all_with_tool_filter(
         "conda_exec.cache.CacheManager.remove",
         lambda self, key: removed.append(key),
     )
-    p = ArgumentParser()
-    configure_clean_parser(p)
-    args = p.parse_args(["--all", "--yes", "ruff"])
+    args = clean_parser.parse_args(["--all", "--yes", "ruff"])
     rc = execute_clean(args)
     assert rc == 0
     assert sorted(removed) == ["ruff--abcd1234", "ruff--beef9876"]
@@ -246,6 +224,7 @@ def test_execute_clean_all_with_tool_filter(
 
 
 def test_execute_clean_skips_entry_without_last_modified(
+    clean_parser: ArgumentParser,
     capsys: pytest.CaptureFixture,
     monkeypatch: pytest.MonkeyPatch,
 ):
@@ -262,15 +241,14 @@ def test_execute_clean_skips_entry_without_last_modified(
     monkeypatch.setattr(
         "conda_exec.cache.CacheManager.list_cached", lambda self: [entry]
     )
-    p = ArgumentParser()
-    configure_clean_parser(p)
-    args = p.parse_args(["--older-than", "30"])
+    args = clean_parser.parse_args(["--older-than", "30"])
     rc = execute_clean(args)
     assert rc == 0
     assert "Nothing to clean." in capsys.readouterr().out
 
 
 def test_execute_clean_prompts_without_yes(
+    clean_parser: ArgumentParser,
     capsys: pytest.CaptureFixture,
     monkeypatch: pytest.MonkeyPatch,
     cache_entry: Callable[..., CacheEntry],
@@ -287,9 +265,7 @@ def test_execute_clean_prompts_without_yes(
         lambda self, key: removed.append(key),
     )
     monkeypatch.setattr("conda.reporters.confirm_yn", lambda *a, **kw: True)
-    p = ArgumentParser()
-    configure_clean_parser(p)
-    args = p.parse_args([])
+    args = clean_parser.parse_args([])
     rc = execute_clean(args)
     assert rc == 0
     assert removed == ["ruff--abcd1234"]
@@ -299,6 +275,7 @@ def test_execute_clean_prompts_without_yes(
 
 
 def test_execute_clean_prompt_declined(
+    clean_parser: ArgumentParser,
     capsys: pytest.CaptureFixture,
     monkeypatch: pytest.MonkeyPatch,
     cache_entry: Callable[..., CacheEntry],
@@ -321,9 +298,7 @@ def test_execute_clean_prompt_declined(
         raise CondaSystemExit("Exiting.")
 
     monkeypatch.setattr("conda.reporters.confirm_yn", decline)
-    p = ArgumentParser()
-    configure_clean_parser(p)
-    args = p.parse_args([])
+    args = clean_parser.parse_args([])
     rc = execute_clean(args)
     assert rc == 1
     assert removed == []
@@ -331,6 +306,7 @@ def test_execute_clean_prompt_declined(
 
 
 def test_execute_clean_prompt_eof(
+    clean_parser: ArgumentParser,
     monkeypatch: pytest.MonkeyPatch,
     cache_entry: Callable[..., CacheEntry],
 ):
@@ -345,8 +321,6 @@ def test_execute_clean_prompt_eof(
         raise EOFError
 
     monkeypatch.setattr("conda.reporters.confirm_yn", raise_eof)
-    p = ArgumentParser()
-    configure_clean_parser(p)
-    args = p.parse_args([])
+    args = clean_parser.parse_args([])
     rc = execute_clean(args)
     assert rc == 1
