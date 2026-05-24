@@ -23,4 +23,25 @@ Command-line interface reference.
 On-disk cache structure and file layout.
 :::
 
+:::{grid-item-card} {octicon}`gear` Environment variables
+:link: environment-variables
+:link-type: doc
+
+Variables that conda-exec reads, sets, and respects.
+:::
+
+:::{grid-item-card} {octicon}`alert` Error messages
+:link: errors
+:link-type: doc
+
+Error conditions, messages, hints, and exit codes.
+:::
+
+:::{grid-item-card} {octicon}`file-code` Script metadata format
+:link: script-metadata
+:link-type: doc
+
+PEP 723 inline metadata for Python scripts.
+:::
+
 ::::

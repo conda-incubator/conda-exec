@@ -4,13 +4,15 @@
 
 conda-exec is a conda plugin that enables ephemeral package execution. It creates cached, isolated environments and runs tools from them without modifying the user's PATH or global state.
 
+In addition to the `conda exec` subcommand, conda-exec provides a standalone `ce` command. This is a console script entry point (`ce = "conda_exec.main:main"` in pyproject.toml) that creates its own `ArgumentParser` with `prog="ce"` and calls the same `configure_parser()` and `execute()` functions as `conda exec`. The relationship mirrors how `uvx` is a standalone alias for `uv tool run`: `ce ruff check .` is equivalent to `conda exec ruff check .`, but shorter to type and usable without conda's plugin system loaded.
+
 ## Flow
 
 ### Tool execution
 
 ```{mermaid}
 flowchart TD
-    A["<b>conda exec ruff check .</b>"] --> B["<b>plugin.py</b><br>Register exec and x subcommands"]
+    A["<b>conda exec ruff check .</b>"] --> B["<b>plugin.py</b><br>Register exec subcommand"]
     B --> C["<b>cli.py</b><br>Parse args, dispatch to handler"]
     C --> D["<b>execute.py</b><br>Extract tool name, build specs list"]
     D --> E{"<b>cache.py</b><br>Compute cache key, check cache"}
@@ -99,7 +101,7 @@ conda-exec fills the same role as these tools in their respective ecosystems:
 | [npx](https://docs.npmjs.com/cli/commands/npx) | Node.js | `npx prettier --write .` |
 | [uvx](https://docs.astral.sh/uv/guides/tools/) | Python (uv) | `uvx ruff check .` |
 | [pipx run](https://pipx.pypa.io/) | Python (pip) | `pipx run black .` |
-| **conda exec** | **conda** | **`conda exec ruff check .`** |
+| **conda exec** / **ce** | **conda** | **`conda exec ruff check .`** or **`ce ruff check .`** |
 
 ## PEP 723 and the `[tool.conda]` extension
 

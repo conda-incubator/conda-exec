@@ -108,6 +108,11 @@ Run a script <tutorials/run-script>
 
 Run scripts <how-to/run-scripts>
 Manage cache <how-to/manage-cache>
+Use channels <how-to/use-channels>
+Use activation <how-to/use-activation>
+Pin versions <how-to/version-constraints>
+Use in CI/CD <how-to/ci-cd>
+Troubleshooting <how-to/troubleshooting>
 ```
 
 ```{toctree}
@@ -116,6 +121,9 @@ Manage cache <how-to/manage-cache>
 
 CLI <reference/cli>
 Cache layout <reference/cache-layout>
+Environment variables <reference/environment-variables>
+Error messages <reference/errors>
+Script metadata <reference/script-metadata>
 ```
 
 ```{toctree}
@@ -123,4 +131,6 @@ Cache layout <reference/cache-layout>
 :caption: Explanation
 
 Architecture <explanation/architecture>
+Caching <explanation/caching>
+Security <explanation/security>
 ```

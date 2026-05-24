@@ -16,4 +16,18 @@ Background and design decisions.
 How conda-exec works under the hood.
 :::
 
+:::{grid-item-card} {octicon}`database` Caching
+:link: caching
+:link-type: doc
+
+How the environment cache works.
+:::
+
+:::{grid-item-card} {octicon}`shield` Security model
+:link: security
+:link-type: doc
+
+Security considerations and trust boundaries.
+:::
+
 ::::
