@@ -103,6 +103,37 @@ Scripts without metadata are passed through as-is:
 conda exec hello.py
 ```
 
+## Make scripts directly executable
+
+Add a shebang line to run scripts without typing `conda exec` or `ce`:
+
+```python
+#!/usr/bin/env ce
+# /// script
+# [tool.conda]
+# channels = ["conda-forge"]
+# dependencies = ["numpy"]
+# ///
+
+import numpy as np
+print(np.random.default_rng().random(5))
+```
+
+```bash
+chmod +x demo.py
+./demo.py
+```
+
+The `ce` standalone command is the recommended shebang target because it
+works on all platforms. Using `conda exec` in a shebang does not work
+because the kernel cannot split multi-word interpreter arguments portably.
+
+```{note}
+On macOS and recent Linux kernels, `#!/usr/bin/env -S conda exec` works
+via the `-S` (split string) flag, but this is not portable to all systems.
+Use `#!/usr/bin/env ce` for maximum compatibility.
+```
+
 ## Force re-creation
 
 If the cached script environment is stale:

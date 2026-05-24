@@ -2,7 +2,13 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from conda_exec.main import main
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+    from pathlib import Path
 
 
 def test_main_no_args(capsys):
@@ -37,3 +43,25 @@ def test_main_dispatches_to_execute(exec_home, solver_calls, monkeypatch):
     result = main(["mytool"])
     assert result == 0
     assert len(solver_calls) == 1
+
+
+def test_main_runs_script_via_shebang(
+    write_script: Callable[..., Path],
+    script_env: list[dict],
+):
+    """Simulate shebang invocation: #!/usr/bin/env ce
+
+    The kernel passes the absolute script path as the first argument,
+    so ``ce /path/to/script.py`` must detect and run it as a script.
+    """
+    script = write_script(
+        "# /// script\n"
+        "# [tool.conda]\n"
+        '# dependencies = ["numpy"]\n'
+        "# ///\n"
+        "print('hello')\n"
+    )
+    result = main([str(script.resolve())])
+    assert result == 0
+    assert len(script_env) == 1
+    assert "numpy" in script_env[0]["specs"]

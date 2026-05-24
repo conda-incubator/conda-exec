@@ -535,6 +535,66 @@ def test_parse_script_metadata_skips_large_file(tmp_path: Path):
     assert parse_script_metadata(str(script)) is None
 
 
+@pytest.mark.usefixtures("exec_home", "solver_calls")
+def test_script_requires_python_mismatch(
+    parser: ArgumentParser,
+    write_script: Callable[..., Path],
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture,
+):
+    """When the resolved Python violates requires-python, give a clear error."""
+    import stat
+
+    from conda.common.compat import on_win
+    from conda.common.path import BIN_DIRECTORY
+
+    script = write_script(
+        "# /// script\n"
+        '# requires-python = ">=3.99"\n'
+        "# [tool.conda]\n"
+        '# dependencies = ["numpy"]\n'
+        "# ///\n"
+        "print('hello')\n"
+    )
+
+    python_name = "python.exe" if on_win else "python"
+
+    def fake_find_binary(prefix: Path, name: str) -> Path | None:
+        python = prefix / BIN_DIRECTORY / python_name
+        python.parent.mkdir(parents=True, exist_ok=True)
+        if on_win:
+            python.write_text("")
+        else:
+            python.write_text("#!/bin/sh\n")
+            python.chmod(python.stat().st_mode | stat.S_IXUSR)
+        return python
+
+    class FakeRecord:
+        version = "3.12.4"
+
+    class FakePrefixData:
+        def __init__(self, *_args):
+            pass
+
+        def get(self, name, default=None):
+            if name == "python":
+                return FakeRecord()
+            return default
+
+    monkeypatch.setattr("conda_exec.binaries.find_binary", fake_find_binary)
+    monkeypatch.setattr(
+        "conda.core.prefix_data.PrefixData",
+        FakePrefixData,
+    )
+
+    args = parser.parse_args([str(script)])
+    rc = execute_run(args)
+    assert rc == 1
+    err = capsys.readouterr().err
+    assert "requires Python >=3.99" in err
+    assert "3.12.4" in err
+
+
 def test_script_no_metadata_with_cli_extras(
     parser: ArgumentParser,
     write_script: Callable[..., Path],

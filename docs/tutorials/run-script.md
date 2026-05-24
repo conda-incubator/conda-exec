@@ -137,6 +137,29 @@ Use `--` to separate conda-exec options from script arguments:
 conda exec --with numpy hello.py -- --flag value
 ```
 
+## Step 6: Make it directly executable
+
+Add a shebang line so the script can run without typing `conda exec`:
+
+```python
+#!/usr/bin/env ce
+# /// script
+# [tool.conda]
+# channels = ["conda-forge"]
+# dependencies = ["zlib"]
+# ///
+
+print("Hello from a conda-exec script!")
+```
+
+```bash
+chmod +x hello.py
+./hello.py
+```
+
+The `ce` command is the standalone entry point for conda-exec. It works as
+a shebang target on all platforms.
+
 ## What happened?
 
 conda-exec created a cached environment at

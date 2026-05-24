@@ -101,6 +101,28 @@ def execute_run(args: Namespace) -> int:
         return 1
 
 
+def check_requires_python(prefix: Path, requires_python: str) -> None:
+    """Validate the resolved Python against requires-python (PEP 440)."""
+    from conda.core.prefix_data import PrefixData
+
+    pd = PrefixData(prefix)
+    python_rec = pd.get("python", None)
+    if python_rec is None:
+        return
+
+    from packaging.specifiers import InvalidSpecifier, SpecifierSet
+
+    try:
+        specifier = SpecifierSet(requires_python)
+    except InvalidSpecifier:
+        return
+
+    if python_rec.version not in specifier:
+        from .exceptions import PythonVersionError
+
+        raise PythonVersionError(requires_python, python_rec.version)
+
+
 def execute_script(args: Namespace, script_path: Path) -> int:
     """Execute a Python script with PEP 723 inline metadata."""
     from .binaries import find_binary
@@ -167,6 +189,9 @@ def execute_script(args: Namespace, script_path: Path) -> int:
 
         if created:
             print_created_message("script", start_time)
+
+        if metadata and metadata.requires_python:
+            check_requires_python(prefix, metadata.requires_python)
 
         python = find_binary(prefix, "python")
         if python is None:

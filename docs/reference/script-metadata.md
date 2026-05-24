@@ -43,6 +43,9 @@ Python version constraint as a PEP 440 version specifier.
 
 Translated to a conda `python` spec in the environment solve. For
 example, `requires-python = ">=3.11"` becomes the spec `python >=3.11`.
+After the environment is created, conda-exec validates that the resolved
+Python version satisfies the constraint and reports a clear error if it
+does not.
 
 ### `dependencies`
 
