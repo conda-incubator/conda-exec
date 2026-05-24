@@ -37,13 +37,13 @@ conda exec ruff check .
 
 This time it starts instantly with no progress message because the cached environment already exists.
 
-## Step 3: Try the short alias
+## Step 3: Try the standalone alias
 
 ```bash
-conda x ruff check .
+ce ruff check .
 ```
 
-`conda x` is an alias for `conda exec`.
+`ce` is a standalone command that works the same as `conda exec`.
 
 ## What happened?
 

@@ -1,6 +1,6 @@
 # CLI reference
 
-## conda exec / conda x
+## conda exec
 
 Run a command from a conda package or a Python script without installing
 dependencies permanently.
@@ -10,9 +10,14 @@ dependencies permanently.
 ```text
 conda exec [OPTIONS] TOOL [TOOL_ARGS...]
 conda exec [OPTIONS] SCRIPT.py [SCRIPT_ARGS...]
-conda x [OPTIONS] TOOL [TOOL_ARGS...]
 conda exec --list [--json]
 conda exec --clean [OPTIONS] [TOOL]
+```
+
+A standalone `ce` command is also available as an alias:
+
+```text
+ce [OPTIONS] TOOL [TOOL_ARGS...]
 ```
 
 ### Options
@@ -48,7 +53,7 @@ conda exec --clean [OPTIONS] [TOOL]
 ```bash
 # Basic usage
 conda exec ruff check .
-conda x ruff check .
+ce ruff check .
 
 # Version constraint (match spec as the tool argument)
 conda exec "ruff>=0.4,<0.5" check .

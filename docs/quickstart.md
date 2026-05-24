@@ -18,10 +18,10 @@ Run any conda package without installing it:
 conda exec ruff check .
 ```
 
-Or use the short alias:
+Or use the standalone `ce` command:
 
 ```bash
-conda x ruff check .
+ce ruff check .
 ```
 
 The first invocation creates a cached environment. Subsequent runs reuse the cache and start instantly.

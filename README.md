@@ -4,7 +4,7 @@ Ephemeral package execution for conda. Run any conda package without installing 
 
 ```bash
 conda exec ruff check .
-conda x ruff check .
+ce ruff check .
 ```
 
 conda-exec creates a cached, isolated environment for the tool, runs it, and exits. The environment is cached for fast re-use but is not on PATH and is fully disposable. Think `npx` for Node or `uvx` for Python, but for conda packages.
@@ -22,10 +22,10 @@ Requires `conda-rattler-solver` for fast environment creation.
 ```bash
 # Run a tool (creates cached environment on first use)
 conda exec ruff check .
-conda x ruff check .          # short alias
+ce ruff check .               # standalone alias
 
 # Pin a version
-conda exec --spec "ruff>=0.4,<0.5" ruff check .
+conda exec "ruff>=0.4,<0.5" check .
 
 # Add extra packages
 conda exec --with pytest ruff check .
