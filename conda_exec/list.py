@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import json
 from typing import TYPE_CHECKING
 
+from .cache import CacheManager
 from .format import format_age, format_size
 
 if TYPE_CHECKING:
@@ -12,10 +14,6 @@ if TYPE_CHECKING:
 
 def execute_list(args: Namespace) -> int:
     """List cached tool environments."""
-    import json
-
-    from .cache import CacheManager
-
     cache = CacheManager()
     entries = cache.list_cached()
 

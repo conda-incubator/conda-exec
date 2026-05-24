@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
     from pathlib import Path
 
-from conda_exec.binaries import discover_binaries, find_binary
+from conda_exec.binaries import discover_binaries, find_binary, find_python
 
 
 @pytest.fixture
@@ -58,12 +58,28 @@ def test_find_binary_windows(win_prefix: Path, ext: str):
     assert result.stem == "ruff"
 
 
-def test_find_binary_windows_prefix_root(win_prefix: Path):
+def test_find_python_windows_prefix_root(
+    win_prefix: Path, monkeypatch: pytest.MonkeyPatch
+):
+    monkeypatch.setattr(
+        "conda.common.path.get_python_short_path", lambda: "python.exe"
+    )
     (win_prefix / "python.exe").write_text("")
-    result = find_binary(win_prefix, "python")
+    result = find_python(win_prefix)
     assert result is not None
     assert result.name == "python.exe"
     assert result.parent == win_prefix
+
+
+def test_find_python_unix(unix_prefix: Path, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr(
+        "conda.common.path.get_python_short_path", lambda: "bin/python"
+    )
+    (unix_prefix / "bin" / "python").write_text("#!/bin/sh\n")
+    result = find_python(unix_prefix)
+    assert result is not None
+    assert result.name == "python"
+    assert result.parent == unix_prefix / "bin"
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="chmod +x is a no-op on Windows")

@@ -11,6 +11,14 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from conda.base.context import context
+from conda.core import prefix_data
+from conda.core.envs_manager import unregister_env
+from conda.exceptions import UnsatisfiableError
+from conda.gateways.disk.delete import rm_rf
+from conda.models.channel import Channel
+from conda.models.match_spec import MatchSpec
+
 from .exceptions import SolveError, SolverNotAvailableError
 
 if TYPE_CHECKING:
@@ -73,12 +81,6 @@ class CacheManager:
         Uses a temporary directory and atomic rename to prevent
         partial environments from being visible on crash.
         """
-        from conda.base.context import context
-        from conda.exceptions import UnsatisfiableError
-        from conda.gateways.disk.delete import rm_rf
-        from conda.models.channel import Channel
-        from conda.models.match_spec import MatchSpec
-
         solver_backend = context.plugin_manager.get_cached_solver_backend()
         if solver_backend is None:
             raise SolverNotAvailableError
@@ -128,20 +130,14 @@ class CacheManager:
 
     def remove(self, key: str) -> None:
         """Remove a cached environment."""
-        from conda.core.envs_manager import unregister_env
-        from conda.core.prefix_data import PrefixData
-        from conda.gateways.disk.delete import rm_rf
-
         prefix = self.prefix_for(key)
         if prefix.exists():
             unregister_env(str(prefix))
-            PrefixData._cache_.clear()
+            prefix_data.PrefixData._cache_.clear()
             rm_rf(prefix)
 
     def list_cached(self) -> list[CacheEntry]:
         """Enumerate all cached environments with metadata."""
-        from conda.core.prefix_data import PrefixData
-
         if not self.envs_dir.is_dir():
             return []
 
@@ -151,13 +147,12 @@ class CacheManager:
                 continue
             if path.name.startswith(".tmp-"):
                 continue
-            conda_meta = path / "conda-meta"
-            if not conda_meta.is_dir():
+            pd = prefix_data.PrefixData(path)
+            if not pd.is_environment():
                 continue
 
             tool = path.name.rsplit("--", 1)[0]
-            pd = PrefixData(path)
-            package_count = len(list(conda_meta.glob("*.json")))
+            package_count = len(list(pd.iter_records()))
 
             entries.append(
                 CacheEntry(
@@ -178,8 +173,6 @@ class CacheManager:
         Returns ``{tool}--{hash}`` where hash is the first 16 hex characters
         of the SHA-256 of the sorted, normalized spec list and channel list.
         """
-        from conda.models.match_spec import MatchSpec
-
         if not tool:
             raise ValueError("tool name cannot be empty")
         if len(tool) > 128:

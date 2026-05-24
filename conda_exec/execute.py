@@ -2,15 +2,27 @@
 
 from __future__ import annotations
 
+import subprocess
 import sys
 import time
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from conda.core import prefix_data
+from conda.models.match_spec import MatchSpec
+from packaging.specifiers import InvalidSpecifier, SpecifierSet
+
+from . import binaries, run, script
+from .cache import CacheManager
+from .exceptions import (
+    BinaryNotFoundError,
+    CondaExecError,
+    PyPIDependencyError,
+    PythonVersionError,
+)
+
 if TYPE_CHECKING:
     from argparse import Namespace
-
-    from .exceptions import CondaExecError
 
 DEFAULT_CHANNELS = ["conda-forge"]
 
@@ -53,13 +65,6 @@ def print_created_message(label: str, start_time: float) -> None:
 
 def execute_run(args: Namespace) -> int:
     """Execute a tool from an ephemeral conda environment."""
-    from conda.models.match_spec import MatchSpec
-
-    from .binaries import find_binary
-    from .cache import CacheManager
-    from .exceptions import BinaryNotFoundError, CondaExecError
-    from .run import run_in_prefix
-
     tool = args.tool
     if not tool:
         print("conda exec: missing TOOL argument", file=sys.stderr)
@@ -90,11 +95,11 @@ def execute_run(args: Namespace) -> int:
         if created:
             print_created_message(name, start_time)
 
-        binary = find_binary(prefix, name)
+        binary = binaries.find_binary(prefix, name)
         if binary is None:
             raise BinaryNotFoundError(name)
 
-        return run_in_prefix(prefix, binary, tool_args, activate=args.activate)
+        return run.run_in_prefix(prefix, binary, tool_args, activate=args.activate)
 
     except CondaExecError as exc:
         print_exec_error(exc)
@@ -103,14 +108,10 @@ def execute_run(args: Namespace) -> int:
 
 def check_requires_python(prefix: Path, requires_python: str) -> None:
     """Validate the resolved Python against requires-python (PEP 440)."""
-    from conda.core.prefix_data import PrefixData
-
-    pd = PrefixData(prefix)
+    pd = prefix_data.PrefixData(prefix)
     python_rec = pd.get("python", None)
     if python_rec is None:
         return
-
-    from packaging.specifiers import InvalidSpecifier, SpecifierSet
 
     try:
         specifier = SpecifierSet(requires_python)
@@ -118,22 +119,14 @@ def check_requires_python(prefix: Path, requires_python: str) -> None:
         return
 
     if python_rec.version not in specifier:
-        from .exceptions import PythonVersionError
-
         raise PythonVersionError(requires_python, python_rec.version)
 
 
 def execute_script(args: Namespace, script_path: Path) -> int:
     """Execute a Python script with PEP 723 inline metadata."""
-    from .binaries import find_binary
-    from .cache import CacheManager
-    from .exceptions import CondaExecError, PyPIDependencyError
-    from .run import run_in_prefix
-    from .script import parse_script_metadata
-
     tool_args = strip_tool_separator(args)
 
-    metadata = parse_script_metadata(str(script_path))
+    metadata = script.parse_script_metadata(str(script_path))
 
     has_conda_deps = metadata and metadata.conda_dependencies
     has_pypi_deps = metadata and metadata.pypi_dependencies
@@ -193,7 +186,7 @@ def execute_script(args: Namespace, script_path: Path) -> int:
         if metadata and metadata.requires_python:
             check_requires_python(prefix, metadata.requires_python)
 
-        python = find_binary(prefix, "python")
+        python = binaries.find_python(prefix)
         if python is None:
             print(
                 "conda exec: python not found in script environment",
@@ -201,7 +194,7 @@ def execute_script(args: Namespace, script_path: Path) -> int:
             )
             return 1
 
-        return run_in_prefix(
+        return run.run_in_prefix(
             prefix,
             python,
             [str(script_path.resolve()), *tool_args],
@@ -215,8 +208,6 @@ def execute_script(args: Namespace, script_path: Path) -> int:
 
 def run_script_directly(script_path: Path, args: list[str]) -> int:
     """Run a script with the current Python when no deps are declared."""
-    import subprocess
-
     result = subprocess.run(  # noqa: S603
         [sys.executable, str(script_path.resolve()), *args],
     )

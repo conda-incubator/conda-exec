@@ -2,8 +2,14 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
+from conda import reporters
+from conda.base.context import context
+from conda.exceptions import CondaSystemExit
+
+from .cache import CacheManager
 from .format import format_size
 
 if TYPE_CHECKING:
@@ -12,14 +18,6 @@ if TYPE_CHECKING:
 
 def execute_clean(args: Namespace) -> int:
     """Remove cached tool environments."""
-    from datetime import datetime, timezone
-
-    from conda.base.context import context
-    from conda.exceptions import CondaSystemExit
-    from conda.reporters import confirm_yn
-
-    from .cache import CacheManager
-
     cache = CacheManager()
     entries = cache.list_cached()
 
@@ -62,7 +60,7 @@ def execute_clean(args: Namespace) -> int:
         for entry in to_remove:
             print(f"  {entry.key}")
         try:
-            confirm_yn()
+            reporters.confirm_yn()
         except (CondaSystemExit, EOFError):
             print("Aborted.")
             return 1

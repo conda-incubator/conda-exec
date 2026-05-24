@@ -410,16 +410,16 @@ def test_script_tool_args(
     not_expected: list[str],
 ):
     from conda.common.compat import on_win
-    from conda.common.path import BIN_DIRECTORY
 
     script = write_script(SCRIPT_CONDA_ONLY)
     received: list[tuple] = []
 
-    def fake_find_binary(prefix: Path, name: str) -> Path | None:
+    def fake_find_python(prefix: Path) -> Path | None:
         import stat
 
         python_name = "python.exe" if on_win else "python"
-        python = prefix / BIN_DIRECTORY / python_name
+        python_short = python_name if on_win else f"bin/{python_name}"
+        python = prefix / python_short
         python.parent.mkdir(parents=True, exist_ok=True)
         if on_win:
             python.write_text("")
@@ -428,12 +428,13 @@ def test_script_tool_args(
             python.chmod(python.stat().st_mode | stat.S_IXUSR)
         return python
 
-    monkeypatch.setattr("conda_exec.binaries.find_binary", fake_find_binary)
+    monkeypatch.setattr("conda_exec.binaries.find_python", fake_find_python)
     monkeypatch.setattr(
         "conda_exec.run.run_in_prefix",
-        lambda prefix, binary, args, **kw: (received.append((prefix, binary, args)), 0)[
-            1
-        ],
+        lambda prefix, binary, args, **kw: (
+            received.append((prefix, binary, args)),
+            0,
+        )[1],
     )
 
     args = parser.parse_args([str(script), *extra_argv])
@@ -457,7 +458,7 @@ def test_script_python_not_found_in_env(
     capsys: pytest.CaptureFixture,
 ):
     script = write_script(SCRIPT_CONDA_ONLY)
-    monkeypatch.setattr("conda_exec.binaries.find_binary", lambda prefix, name: None)
+    monkeypatch.setattr("conda_exec.binaries.find_python", lambda prefix: None)
 
     args = parser.parse_args([str(script)])
     rc = execute_run(args)
@@ -546,7 +547,6 @@ def test_script_requires_python_mismatch(
     import stat
 
     from conda.common.compat import on_win
-    from conda.common.path import BIN_DIRECTORY
 
     script = write_script(
         "# /// script\n"
@@ -558,9 +558,10 @@ def test_script_requires_python_mismatch(
     )
 
     python_name = "python.exe" if on_win else "python"
+    python_short = python_name if on_win else f"bin/{python_name}"
 
-    def fake_find_binary(prefix: Path, name: str) -> Path | None:
-        python = prefix / BIN_DIRECTORY / python_name
+    def fake_find_python(prefix: Path) -> Path | None:
+        python = prefix / python_short
         python.parent.mkdir(parents=True, exist_ok=True)
         if on_win:
             python.write_text("")
@@ -581,7 +582,7 @@ def test_script_requires_python_mismatch(
                 return FakeRecord()
             return default
 
-    monkeypatch.setattr("conda_exec.binaries.find_binary", fake_find_binary)
+    monkeypatch.setattr("conda_exec.binaries.find_python", fake_find_python)
     monkeypatch.setattr(
         "conda.core.prefix_data.PrefixData",
         FakePrefixData,

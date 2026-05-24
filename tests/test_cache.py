@@ -304,6 +304,9 @@ def test_list_cached_with_entries(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
         def __init__(self, path):
             self.path = path
 
+        def is_environment(self):
+            return (self.path / "conda-meta" / "history").is_file()
+
         @property
         def created(self):
             return None
@@ -314,6 +317,9 @@ def test_list_cached_with_entries(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
 
         def size(self):
             return 0
+
+        def iter_records(self):
+            return []
 
     monkeypatch.setattr("conda.core.prefix_data.PrefixData", FakePrefixData)
 

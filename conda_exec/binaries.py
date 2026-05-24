@@ -31,18 +31,31 @@ def find_binary(prefix: Path, name: str) -> Path | None:
         return None
 
     if on_win:
-        for search_dir in (bin_dir, prefix):
-            for ext in (*WIN_EXTENSIONS, ""):
-                candidate = search_dir / f"{name}{ext}"
-                if candidate.is_file():
-                    if is_within_prefix(candidate, resolved_prefix):
-                        return candidate
+        for ext in (*WIN_EXTENSIONS, ""):
+            candidate = bin_dir / f"{name}{ext}"
+            if candidate.is_file():
+                if is_within_prefix(candidate, resolved_prefix):
+                    return candidate
     else:
         candidate = bin_dir / name
         if candidate.is_file():
             if is_within_prefix(candidate, resolved_prefix):
                 return candidate
 
+    return None
+
+
+def find_python(prefix: Path) -> Path | None:
+    """Find the Python interpreter in a conda prefix.
+
+    Uses conda's ``get_python_short_path()`` which knows that Python
+    lives at the prefix root on Windows and in ``bin/`` on Unix.
+    """
+    from conda.common.path import get_python_short_path
+
+    candidate = prefix / get_python_short_path()
+    if candidate.is_file():
+        return candidate
     return None
 
 

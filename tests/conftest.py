@@ -121,13 +121,14 @@ def script_env(
 ) -> list[dict]:
     """Isolated script execution environment.
 
-    Patches find_binary to create a fake python binary and
+    Patches find_python to create a fake python binary and
     run_in_prefix to return 0. Returns solver_calls for assertions.
     """
     python_name = "python.exe" if on_win else "python"
+    python_short_path = python_name if on_win else f"bin/{python_name}"
 
-    def fake_find_binary(prefix: Path, name: str) -> Path | None:
-        python = prefix / BIN_DIRECTORY / python_name
+    def fake_find_python(prefix: Path) -> Path | None:
+        python = prefix / python_short_path
         python.parent.mkdir(parents=True, exist_ok=True)
         if on_win:
             python.write_text("")
@@ -138,7 +139,7 @@ def script_env(
             )
         return python
 
-    monkeypatch.setattr("conda_exec.binaries.find_binary", fake_find_binary)
+    monkeypatch.setattr("conda_exec.binaries.find_python", fake_find_python)
     monkeypatch.setattr(
         "conda_exec.run.run_in_prefix", lambda prefix, binary, args, **kw: 0
     )
