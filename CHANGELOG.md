@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.0 (unreleased)
+## 0.1.0 (2026-05-24)
 
 Initial release of conda-exec: ephemeral package execution for conda.
 

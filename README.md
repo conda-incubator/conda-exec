@@ -4,6 +4,7 @@
 [![Documentation](https://github.com/jezdez/conda-exec/actions/workflows/docs.yml/badge.svg)](https://jezdez.github.io/conda-exec/)
 [![License: BSD-3-Clause](https://img.shields.io/badge/license-BSD--3--Clause-blue.svg)](https://github.com/jezdez/conda-exec/blob/main/LICENSE)
 [![Python: 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://python.org)
+[![Benchmarks](https://img.shields.io/badge/benchmarks-bencher.dev-blue)](https://bencher.dev/perf/conda-exec)
 [![zizmor](https://img.shields.io/badge/%F0%9F%8C%88-zizmor-white?labelColor=white)](https://github.com/jezdez/conda-exec/actions/workflows/zizmor.yml)
 
 Ephemeral package execution for conda. Run any conda package without installing it permanently.
