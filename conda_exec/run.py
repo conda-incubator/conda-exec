@@ -54,7 +54,7 @@ def run_in_prefix(
         env["PATH"] = bin_dir + os.pathsep + env.get("PATH", "")
 
     try:
-        result = subprocess.run(
+        result = subprocess.run(  # noqa: S603
             [str(binary), *args],
             env=env,
         )

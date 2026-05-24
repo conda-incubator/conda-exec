@@ -30,18 +30,19 @@ def format_age(dt: datetime | None) -> str:
     now = datetime.now(tz=timezone.utc)
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
-    delta = now - dt
+    total_seconds = int((now - dt).total_seconds())
 
-    if delta.days > 1:
-        return f"{delta.days} days ago"
-    if delta.days == 1:
+    days = total_seconds // 86400
+    if days > 1:
+        return f"{days} days ago"
+    if days == 1:
         return "1 day ago"
-    hours = delta.seconds // 3600
+    hours = total_seconds // 3600
     if hours > 1:
         return f"{hours} hours ago"
     if hours == 1:
         return "1 hour ago"
-    minutes = delta.seconds // 60
+    minutes = total_seconds // 60
     if minutes > 1:
         return f"{minutes} minutes ago"
     if minutes == 1:

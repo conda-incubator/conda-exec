@@ -24,12 +24,16 @@ classifiers = [
 dependencies = [
   # conda is required but only available via conda, not PyPI:
   # "conda >=25.1",
+  "tomli >=1.0; python_version < '3.11'",
 ]
 dynamic = ["version"]
 
 [project.urls]
 documentation = "https://jezdez.github.io/conda-exec"
 repository = "https://github.com/jezdez/conda-exec"
+
+[project.scripts]
+ce = "conda_exec.main:main"
 
 [project.entry-points.conda]
 "conda-exec" = "conda_exec.plugin"
@@ -67,7 +71,10 @@ select = [
   "FA",     # flake8-future-annotations
   "I",      # isort
   "ISC",    # flake8-implicit-str-concat
+  "PT",     # flake8-pytest-style
   "RUF100", # unused noqa directive
+  "S603",   # subprocess call with shell=True
+  "S607",   # start process with a partial executable path
   "T10",    # flake8-debugger
   "TCH",    # flake8-type-checking
   "UP",     # pyupgrade

@@ -30,9 +30,3 @@ def conda_subcommands() -> Iterable[CondaSubcommand]:
         action=execute,
         configure_parser=configure_parser,
     )
-    yield CondaSubcommand(
-        name="x",
-        summary="Run a command from a conda package without installing it.",
-        action=execute,
-        configure_parser=configure_parser,
-    )

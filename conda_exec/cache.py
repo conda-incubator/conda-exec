@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import hashlib
 import logging
-import os
 import re
 import tempfile
 import time
@@ -231,6 +230,6 @@ class CacheManager:
             history = prefix / "conda-meta" / "history"
             if time.time() - history.stat().st_mtime < 3600:
                 return
-            os.utime(history)
+            history.touch()
         except FileNotFoundError:
             pass

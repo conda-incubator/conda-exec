@@ -192,7 +192,7 @@ def run_script_directly(script_path: Path, args: list[str]) -> int:
     """Run a script with the current Python when no deps are declared."""
     import subprocess
 
-    result = subprocess.run(
+    result = subprocess.run(  # noqa: S603
         [sys.executable, str(script_path.resolve()), *args],
     )
     return result.returncode

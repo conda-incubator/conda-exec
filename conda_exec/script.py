@@ -10,6 +10,8 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
+MAX_SCRIPT_SIZE = 10 * 1024 * 1024
+
 SCRIPT_MARKER_RE = re.compile(r"^# /// (?P<type>[a-zA-Z0-9-]+)\s*$")
 SCRIPT_END_RE = re.compile(r"^# ///$")
 
@@ -34,7 +36,7 @@ def parse_script_metadata(path_or_text: str) -> ScriptMetadata | None:
 
     script_path = Path(path_or_text)
     if script_path.is_file():
-        if script_path.stat().st_size > 10 * 1024 * 1024:
+        if script_path.stat().st_size > MAX_SCRIPT_SIZE:
             return None
         with script_path.open(encoding="utf-8") as source_file:
             toml_str = extract_script_block(source_file)

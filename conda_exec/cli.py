@@ -1,4 +1,4 @@
-"""CLI parser and dispatch for conda exec / conda x."""
+"""CLI parser and dispatch for conda exec."""
 
 from __future__ import annotations
 

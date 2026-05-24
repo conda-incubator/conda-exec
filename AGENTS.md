@@ -2,9 +2,9 @@
 
 ## Project structure
 
-- The package provides two conda subcommands from a single plugin:
-  `conda exec` (ephemeral package execution) and `conda x` (short
-  alias). Both dispatch to the same CLI handler.
+- The package provides the `conda exec` subcommand via a conda plugin
+  and a standalone `ce` command via a console script entry point. Both
+  dispatch to the same CLI handler.
 
 - All modules live at the package root. `cli.py` contains parser
   configuration and dispatch. `execute.py` handles the run command.
