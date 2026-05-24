@@ -21,9 +21,16 @@ pytestmark = pytest.mark.slow
 
 
 @pytest.mark.usefixtures("exec_home")
-def test_exec_end_to_end(conda_cli: CondaCLIFixture):
-    out, err, code = conda_cli("exec", "zlib", "--", "--help")
-    assert code in (0, 1, 2)
+def test_exec_end_to_end_binary_not_found(conda_cli: CondaCLIFixture):
+    out, err, code = conda_cli("exec", "zlib")
+    assert code == 1
+    assert "not found" in err
+
+
+@pytest.mark.usefixtures("exec_home")
+def test_exec_end_to_end_with_binary(conda_cli: CondaCLIFixture):
+    out, err, code = conda_cli("exec", "jq", "--", "--help")
+    assert code == 0
 
 
 @pytest.mark.usefixtures("exec_home")

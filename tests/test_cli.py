@@ -349,3 +349,57 @@ def test_execute_warns_misplaced_flag(
     args = parser.parse_args([flag, "ruff"])
     execute(args)
     assert expected_warning in capsys.readouterr().err
+
+
+def test_execute_run_with_specs_reach_solver(
+    parser: ArgumentParser,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    received_specs: list[list[str]] = []
+
+    monkeypatch.setattr(
+        "conda_exec.cache.CacheManager.get_or_create",
+        lambda self, key, specs, channels: (
+            received_specs.append(specs),
+            (__import__("pathlib").Path("/fake"), False),
+        )[1],
+    )
+    monkeypatch.setattr(
+        "conda_exec.binaries.find_binary",
+        lambda prefix, name: __import__("pathlib").Path("/fake/bin/ruff"),
+    )
+    monkeypatch.setattr(
+        "conda_exec.run.run_in_prefix", lambda prefix, binary, args, **kw: 0
+    )
+    args = parser.parse_args(["--with", "pytest", "--with", "python=3.12", "ruff"])
+    rc = execute_run(args)
+    assert rc == 0
+    assert "ruff" in received_specs[0]
+    assert "pytest" in received_specs[0]
+    assert "python=3.12" in received_specs[0]
+
+
+def test_execute_run_channels_reach_solver(
+    parser: ArgumentParser,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    received_channels: list[list[str]] = []
+
+    monkeypatch.setattr(
+        "conda_exec.cache.CacheManager.get_or_create",
+        lambda self, key, specs, channels: (
+            received_channels.append(channels),
+            (__import__("pathlib").Path("/fake"), False),
+        )[1],
+    )
+    monkeypatch.setattr(
+        "conda_exec.binaries.find_binary",
+        lambda prefix, name: __import__("pathlib").Path("/fake/bin/samtools"),
+    )
+    monkeypatch.setattr(
+        "conda_exec.run.run_in_prefix", lambda prefix, binary, args, **kw: 0
+    )
+    args = parser.parse_args(["-c", "bioconda", "-c", "defaults", "samtools"])
+    rc = execute_run(args)
+    assert rc == 0
+    assert received_channels[0] == ["bioconda", "defaults"]

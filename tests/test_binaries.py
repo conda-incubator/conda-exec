@@ -14,22 +14,22 @@ if TYPE_CHECKING:
 from conda_exec.binaries import discover_binaries, find_binary
 
 
-@pytest.fixture()
+@pytest.fixture
 def unix_prefix(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     monkeypatch.setattr("conda_exec.binaries.BIN_DIRECTORY", "bin")
     monkeypatch.setattr("conda_exec.binaries.on_win", False)
-    p = tmp_path / "env"
-    (p / "bin").mkdir(parents=True)
-    return p
+    env_prefix = tmp_path / "env"
+    (env_prefix / "bin").mkdir(parents=True)
+    return env_prefix
 
 
-@pytest.fixture()
+@pytest.fixture
 def win_prefix(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     monkeypatch.setattr("conda_exec.binaries.BIN_DIRECTORY", "Scripts")
     monkeypatch.setattr("conda_exec.binaries.on_win", True)
-    p = tmp_path / "env"
-    (p / "Scripts").mkdir(parents=True)
-    return p
+    env_prefix = tmp_path / "env"
+    (env_prefix / "Scripts").mkdir(parents=True)
+    return env_prefix
 
 
 def test_find_binary_unix(unix_prefix: Path, executable: Callable[[Path], None]):

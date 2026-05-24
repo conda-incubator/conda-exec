@@ -409,16 +409,23 @@ def test_script_tool_args(
     expected_in_args: list[str],
     not_expected: list[str],
 ):
+    from conda.common.compat import on_win
+    from conda.common.path import BIN_DIRECTORY
+
     script = write_script(SCRIPT_CONDA_ONLY)
     received: list[tuple] = []
 
     def fake_find_binary(prefix: Path, name: str) -> Path | None:
         import stat
 
-        python = prefix / "bin" / "python"
+        python_name = "python.exe" if on_win else "python"
+        python = prefix / BIN_DIRECTORY / python_name
         python.parent.mkdir(parents=True, exist_ok=True)
-        python.write_text("#!/bin/sh\n")
-        python.chmod(python.stat().st_mode | stat.S_IXUSR)
+        if on_win:
+            python.write_text("")
+        else:
+            python.write_text("#!/bin/sh\n")
+            python.chmod(python.stat().st_mode | stat.S_IXUSR)
         return python
 
     monkeypatch.setattr("conda_exec.binaries.find_binary", fake_find_binary)
@@ -515,3 +522,28 @@ def test_script_cache_key_deterministic(
 
     assert key1 == key2
     assert key1.startswith("script--")
+
+
+def test_parse_script_metadata_skips_large_file(tmp_path: Path):
+    from conda_exec.script import MAX_SCRIPT_SIZE
+
+    script = tmp_path / "large.py"
+    script.write_text("# /// script\n# dependencies = ['x']\n# ///\n")
+    import os
+
+    os.truncate(script, MAX_SCRIPT_SIZE + 1)
+    assert parse_script_metadata(str(script)) is None
+
+
+def test_script_no_metadata_with_cli_extras(
+    parser: ArgumentParser,
+    write_script: Callable[..., Path],
+    script_env: list[dict],
+):
+    script = write_script(SCRIPT_NO_METADATA)
+    args = parser.parse_args(["--with", "numpy", "-c", "defaults", str(script)])
+    rc = execute_run(args)
+    assert rc == 0
+    assert len(script_env) == 1
+    assert "numpy" in script_env[0]["specs"]
+    assert "defaults" in script_env[0]["channels"]

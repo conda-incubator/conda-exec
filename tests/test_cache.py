@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from conda_exec.cache import CacheManager
+from conda_exec.exceptions import SolveError, SolverNotAvailableError
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -180,3 +181,146 @@ def test_cache_key_rejects_invalid_tool_name(tmp_path: Path, name: str, match: s
     cm = CacheManager(envs_dir=tmp_path)
     with pytest.raises(ValueError, match=match):
         cm.cache_key(name, [name], ["conda-forge"])
+
+
+def test_create_no_solver_backend(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr(
+        "conda.base.context.context.plugin_manager.get_cached_solver_backend",
+        lambda: None,
+    )
+    cm = CacheManager(envs_dir=tmp_path)
+    with pytest.raises(SolverNotAvailableError):
+        cm.create("ruff--abcd1234", ["ruff"], ["conda-forge"])
+
+
+def test_create_solve_failure_cleans_tmp(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    from conda.exceptions import UnsatisfiableError
+
+    class FailingSolver:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def solve_for_transaction(self):
+            raise UnsatisfiableError({})
+
+    monkeypatch.setattr(
+        "conda.base.context.context.plugin_manager.get_cached_solver_backend",
+        lambda: FailingSolver,
+    )
+    cm = CacheManager(envs_dir=tmp_path)
+    with pytest.raises(SolveError, match="ruff"):
+        cm.create("ruff--abcd1234", ["ruff"], ["conda-forge"])
+
+    remaining = [p for p in tmp_path.iterdir() if p.name.startswith(".tmp-")]
+    assert remaining == []
+
+
+def test_create_atomic_rename(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    class FakeTransaction:
+        def download_and_extract(self):
+            pass
+
+        def execute(self):
+            pass
+
+    class FakeSolver:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def solve_for_transaction(self):
+            return FakeTransaction()
+
+    monkeypatch.setattr(
+        "conda.base.context.context.plugin_manager.get_cached_solver_backend",
+        lambda: FakeSolver,
+    )
+    cm = CacheManager(envs_dir=tmp_path)
+    prefix = cm.create("ruff--abcd1234", ["ruff"], ["conda-forge"])
+
+    assert prefix == tmp_path / "ruff--abcd1234"
+    assert prefix.is_dir()
+    remaining_tmp = [p for p in tmp_path.iterdir() if p.name.startswith(".tmp-")]
+    assert remaining_tmp == []
+
+
+def test_create_concurrent_race(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    final_prefix = tmp_path / "ruff--abcd1234"
+    (final_prefix / "conda-meta").mkdir(parents=True)
+
+    class FakeTransaction:
+        def download_and_extract(self):
+            pass
+
+        def execute(self):
+            pass
+
+    class FakeSolver:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def solve_for_transaction(self):
+            return FakeTransaction()
+
+    monkeypatch.setattr(
+        "conda.base.context.context.plugin_manager.get_cached_solver_backend",
+        lambda: FakeSolver,
+    )
+    cm = CacheManager(envs_dir=tmp_path)
+    prefix = cm.create("ruff--abcd1234", ["ruff"], ["conda-forge"])
+
+    assert prefix == final_prefix
+    remaining_tmp = [p for p in tmp_path.iterdir() if p.name.startswith(".tmp-")]
+    assert remaining_tmp == []
+
+
+def test_remove_deletes_prefix(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    prefix = tmp_path / "ruff--abcd1234"
+    (prefix / "conda-meta").mkdir(parents=True)
+    (prefix / "conda-meta" / "history").write_text("init\n")
+
+    monkeypatch.setattr("conda.core.envs_manager.unregister_env", lambda path: None)
+    monkeypatch.setattr("conda.core.prefix_data.PrefixData._cache_", {})
+
+    cm = CacheManager(envs_dir=tmp_path)
+    cm.remove("ruff--abcd1234")
+
+    assert not prefix.exists()
+
+
+def test_list_cached_with_entries(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    for name in ["ruff--aaa11111", "samtools--bbb22222", ".tmp-stale"]:
+        entry = tmp_path / name
+        entry.mkdir()
+        if not name.startswith(".tmp-"):
+            meta = entry / "conda-meta"
+            meta.mkdir()
+            (meta / "history").write_text("init\n")
+
+    (tmp_path / "no-separator").mkdir()
+
+    class FakePrefixData:
+        def __init__(self, path):
+            self.path = path
+
+        @property
+        def created(self):
+            return None
+
+        @property
+        def last_modified(self):
+            return None
+
+        def size(self):
+            return 0
+
+    monkeypatch.setattr("conda.core.prefix_data.PrefixData", FakePrefixData)
+
+    cm = CacheManager(envs_dir=tmp_path)
+    entries = cm.list_cached()
+
+    tools = [entry.tool for entry in entries]
+    assert "ruff" in tools
+    assert "samtools" in tools
+    assert len(entries) == 2
