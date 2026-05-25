@@ -128,11 +128,12 @@ def execute_script(args: Namespace, script_path: Path) -> int:
 
     metadata = script.parse_script_metadata(str(script_path))
 
-    has_conda_deps = metadata and metadata.conda_dependencies
-    has_pypi_deps = metadata and metadata.pypi_dependencies
+    has_metadata = metadata is not None
+    has_conda_deps = bool(metadata and metadata.conda_dependencies)
+    has_pypi_deps = bool(metadata and metadata.pypi_dependencies)
     has_cli_extras = args.with_specs or args.channels
 
-    if not has_conda_deps and not has_pypi_deps and not has_cli_extras:
+    if not has_metadata and not has_cli_extras:
         return run_script_directly(script_path, tool_args)
 
     try:
@@ -168,11 +169,7 @@ def execute_script(args: Namespace, script_path: Path) -> int:
                 python_spec = f"python {metadata.requires_python}"
             specs.append(python_spec)
 
-        key = (
-            cache.script_cache_key(metadata)
-            if metadata
-            else cache.cache_key("script", specs, channels)
-        )
+        key = cache.cache_key("script", specs, channels)
 
         if args.refresh:
             cache.remove(key)

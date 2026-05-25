@@ -480,6 +480,25 @@ def test_script_requires_python_becomes_spec(
     assert "python >=3.12" in script_env[0]["specs"]
 
 
+def test_script_requires_python_only_creates_env(
+    parser: ArgumentParser,
+    write_script: Callable[..., Path],
+    script_env: list[dict],
+):
+    script = write_script(
+        "# /// script\n"
+        '# requires-python = ">=3.12"\n'
+        "# ///\n"
+        "print('hello')\n"
+    )
+
+    args = parser.parse_args([str(script)])
+    rc = execute_run(args)
+    assert rc == 0
+    assert len(script_env) == 1
+    assert script_env[0]["specs"] == ["python >=3.12"]
+
+
 @pytest.mark.usefixtures("script_env")
 def test_script_refresh_removes_cache(
     parser: ArgumentParser,
@@ -523,6 +542,43 @@ def test_script_cache_key_deterministic(
 
     assert key1 == key2
     assert key1.startswith("script--")
+
+
+@pytest.mark.parametrize(
+    ("first_argv", "second_argv"),
+    [
+        pytest.param(
+            ["--with", "numpy"],
+            ["--with", "pandas"],
+            id="with-specs",
+        ),
+        pytest.param(
+            ["-c", "conda-forge"],
+            ["-c", "defaults"],
+            id="channels",
+        ),
+    ],
+)
+def test_script_cache_key_includes_cli_extras(
+    parser: ArgumentParser,
+    write_script: Callable[..., Path],
+    script_env: list[dict],
+    first_argv: list[str],
+    second_argv: list[str],
+):
+    script = write_script(SCRIPT_CONDA_ONLY)
+
+    first_args = parser.parse_args([*first_argv, str(script)])
+    second_args = parser.parse_args([*second_argv, str(script)])
+
+    assert execute_run(first_args) == 0
+    assert execute_run(second_args) == 0
+
+    first_key = script_env[0]["key"]
+    second_key = script_env[1]["key"]
+    assert first_key != second_key
+    assert first_key.startswith("script--")
+    assert second_key.startswith("script--")
 
 
 def test_parse_script_metadata_skips_large_file(tmp_path: Path):
