@@ -1,25 +1,29 @@
 # Use activation mode
 
 By default, conda-exec only prepends the environment's `bin/` directory to
-`PATH`. The `--activate` flag applies full conda activation instead.
+`PATH`. The `--activate` flag asks conda's activator to compute the
+environment variables for the subprocess instead.
 
 ## What --activate does
 
-With `--activate`, conda-exec runs conda's activation logic before executing
-the tool. This:
+With `--activate`, conda-exec runs conda's activator before executing the
+tool. This:
 
 - Sets `CONDA_PREFIX` to the ephemeral environment path
-- Exports environment variables defined by activation scripts (e.g.
-  `JAVA_HOME`, `R_HOME`)
+- Exports environment variables reported by conda's activator
 - Unsets variables that activation marks for removal
-- Applies any `activate.d/` scripts bundled with installed packages
 
 Without `--activate`, only `PATH` is modified.
 
+conda-exec does not execute package `activate.d/` shell scripts. If a tool
+requires those scripts, use `conda create` or `conda env create` for a named
+environment and run it with `conda run` or an explicitly activated shell.
+That workflow is slower but matches conda's full shell activation semantics.
+
 ## When you need activation
 
-Some tools check `CONDA_PREFIX` or rely on environment variables that
-conda packages set through activation scripts. Common cases:
+Some tools check `CONDA_PREFIX` or rely on variables reported by conda's
+activator. Common cases:
 
 - R packages that need `R_HOME`
 - Java tools that need `JAVA_HOME`
@@ -52,9 +56,9 @@ Skipping activation is the default because it is faster.
 
 ## Performance
 
-Activation adds overhead to each invocation. It imports conda's activation
-machinery and processes activation scripts from installed packages. For
-tools that do not need it, omitting `--activate` avoids this cost.
+Activation adds overhead to each invocation because it imports conda's
+activation machinery and computes the activated environment. For tools that
+do not need it, omitting `--activate` avoids this cost.
 
 ## Example with a script
 
@@ -64,5 +68,5 @@ Activation also works in script mode:
 conda exec --activate script.py
 ```
 
-The script runs inside a fully activated environment with `CONDA_PREFIX`
+The script runs with activation environment variables such as `CONDA_PREFIX`
 set, which is useful for scripts that call conda-aware libraries.

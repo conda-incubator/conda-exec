@@ -38,15 +38,17 @@ The prefix itself is resolved once by the caller and passed in, so the compariso
 
 ## Subprocess execution
 
-conda-exec always invokes binaries using `subprocess.run` with a list of arguments:
+conda-exec invokes tools using `subprocess.run` with a list of arguments:
 
 ```python
 subprocess.run([str(binary), *args], env=env)
 ```
 
-This is never a shell invocation. The binary path and all arguments are passed directly to the operating system's `exec` family of calls, bypassing any shell interpretation. There is no opportunity for shell injection regardless of what characters appear in the tool name or arguments.
+On Unix and for native Windows executables (`.exe`), this is not a shell invocation. The binary path and all arguments are passed directly to the operating system's process creation APIs, bypassing shell interpretation.
 
-The only modification to the subprocess environment is PATH manipulation. In the default mode, the prefix's `bin/` directory is prepended to PATH so the tool can find its own dependencies. With `--activate`, conda's full activation logic is applied, which sets additional environment variables like `CONDA_PREFIX`.
+On Windows, `.bat` and `.cmd` launchers are batch scripts. Python may route those through `cmd.exe` even when `shell=False`, so their argument handling follows Windows batch-file rules. conda-exec prefers `.exe` over `.bat` and `.cmd` when multiple launchers exist, but users should treat batch-backed tools as having a weaker shell-injection boundary than native executables.
+
+The only modification to the subprocess environment is PATH manipulation. In the default mode, the prefix's `bin/` directory is prepended to PATH so the tool can find its own dependencies. With `--activate`, conda's activator is used to build environment variables such as `CONDA_PREFIX`.
 
 ## Cache key validation
 
@@ -80,15 +82,17 @@ Temporary directories are prefixed with `.tmp-` and are explicitly excluded from
 
 ## No shell activation by default
 
-When conda-exec runs a tool, it does *not* perform full conda activation by default. It only prepends the environment's `bin/` directory to PATH:
+When conda-exec runs a tool, it does *not* compute activation environment variables by default. It only prepends the environment's `bin/` directory to PATH:
 
 ```python
 env["PATH"] = bin_dir + os.pathsep + env.get("PATH", "")
 ```
 
-Full activation, triggered by the `--activate` flag, runs conda's activation logic, which executes activation scripts, sets environment variables like `CONDA_PREFIX` and `CONDA_DEFAULT_ENV`, and modifies the shell environment in ways that packages can customize through their `activate.d/` scripts.
+Activation mode, triggered by the `--activate` flag, uses conda's activation logic to compute environment variables like `CONDA_PREFIX` and `CONDA_DEFAULT_ENV`. conda-exec does not invoke a shell activation script for the parent process.
 
-The default PATH-only mode avoids running activation scripts from packages. Most CLI tools (linters, formatters, compilers) do not need activation and work correctly with just PATH. By making activation opt-in, conda-exec reduces the surface area of code that runs by default. Users who need activation (for tools that depend on `CONDA_PREFIX` or package-specific environment variables) can explicitly request it.
+If a package requires `activate.d/` shell scripts, use a named conda environment with `conda run` or an explicitly activated shell instead. conda-exec's activation mode is intended for tools that need activation environment variables, not tools that depend on shell-script side effects.
+
+The default PATH-only mode keeps the subprocess environment small. Most CLI tools (linters, formatters, compilers) do not need activation and work correctly with just PATH. By making activation opt-in, conda-exec reduces the amount of environment rewriting done by default. Users who need activation variables (for tools that depend on `CONDA_PREFIX` or package-specific environment variables) can explicitly request them.
 
 ## Environment isolation
 
@@ -103,10 +107,10 @@ The isolation also means that cached environments are self-contained conda prefi
 | Threat | Mitigation |
 |--------|-----------|
 | Symlink escape from prefix | `is_within_prefix()` resolves and validates binary paths |
-| Shell injection via tool name or args | `subprocess.run` with list arguments, never `shell=True` |
+| Shell injection via tool name or args | `subprocess.run` with list arguments; native executables bypass shell parsing |
 | Path traversal via cache key | Regex validation + resolved path `is_relative_to()` check |
 | Partial environment on crash | Atomic `tempfile.mkdtemp` + `os.rename` |
 | Memory exhaustion from large scripts | 10 MB file size limit on script parsing |
-| Activation script side effects | PATH-only mode by default, activation opt-in via `--activate` |
+| Activation environment side effects | PATH-only mode by default, activator env vars opt-in via `--activate` |
 | Cross-environment interference | Fully isolated prefixes per spec combination |
 | Concurrent environment creation | Atomic rename with fallback to existing environment |

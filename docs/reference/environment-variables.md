@@ -27,9 +27,9 @@ Environment variables that conda-exec reads, sets, or respects during operation.
     (or `Scripts/` on Windows) is prepended to `PATH`. No other
     environment variables are changed.
 
-  - With `--activate`: full conda activation is applied, which
-    modifies `PATH` and may set or unset additional variables
-    (see `CONDA_PREFIX` below).
+  - With `--activate`: conda's activator computes the subprocess
+    environment, which modifies `PATH` and may set or unset additional
+    variables (see `CONDA_PREFIX` below).
 
 `CONDA_PREFIX`
 : Only set when `--activate` is used. Points to the ephemeral

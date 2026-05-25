@@ -53,8 +53,8 @@ def configure_parser(parser: ArgumentParser) -> None:
         action="store_true",
         default=False,
         help=(
-            "Activate the environment before running the tool "
-            "(sets CONDA_PREFIX, etc.)."
+            "Apply conda activation environment variables before running the tool "
+            "(does not run activate.d shell scripts)."
         ),
     )
     parser.add_argument(

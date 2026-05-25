@@ -39,7 +39,7 @@ ce --clean [OPTIONS] [TOOL]
 : Additional package to install in the ephemeral environment (repeatable). Values are full match specs. Example: `--with pytest --with "python=3.12"`.
 
 `--activate`
-: Activate the environment before running the tool. Sets `CONDA_PREFIX` and other activation variables. Most tools do not need this; use it for tools that depend on conda activation env vars.
+: Apply conda activation environment variables before running the tool. Sets `CONDA_PREFIX` and other activation variables, but does not run `activate.d` shell scripts. Most tools do not need this; use it for tools that depend on conda activation env vars.
 
 `--refresh`
 : Force re-creation of the cached environment.
@@ -85,7 +85,7 @@ conda exec -c bioconda samtools view file.bam
 # Force re-creation
 conda exec --refresh ruff check .
 
-# Full activation (sets CONDA_PREFIX, etc.)
+# Activation environment variables (sets CONDA_PREFIX, etc.)
 conda exec --activate samtools view file.bam
 
 # Separate tool args with --
