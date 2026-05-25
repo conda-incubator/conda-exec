@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING
 from conda.base.context import context
 from conda.core import prefix_data
 from conda.core.envs_manager import unregister_env
-from conda.exceptions import UnsatisfiableError
+from conda.exceptions import CondaError
 from conda.gateways.disk.delete import rm_rf
 from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
@@ -89,22 +89,21 @@ class CacheManager:
         self.envs_dir.mkdir(parents=True, exist_ok=True)
         tmp_prefix = Path(tempfile.mkdtemp(dir=self.envs_dir, prefix=".tmp-"))
 
-        channel_objs = [Channel(c) for c in channels]
-        match_specs = [MatchSpec(s) for s in specs]
-
         tool = key.rsplit("--", 1)[0]
 
-        solver = solver_backend(
-            str(tmp_prefix),
-            channel_objs,
-            context.subdirs,
-            specs_to_add=match_specs,
-        )
-
         try:
+            channel_objs = [Channel(c) for c in channels]
+            match_specs = [MatchSpec(s) for s in specs]
+
+            solver = solver_backend(
+                str(tmp_prefix),
+                channel_objs,
+                context.subdirs,
+                specs_to_add=match_specs,
+            )
             transaction = solver.solve_for_transaction()
         # SystemExit: some solver backends call sys.exit() on failure
-        except (UnsatisfiableError, SystemExit) as exc:
+        except (CondaError, SystemExit) as exc:
             rm_rf(tmp_prefix)
             raise SolveError(tool, str(exc)) from exc
 
@@ -112,6 +111,9 @@ class CacheManager:
             transaction.download_and_extract()
             transaction.execute()
             tmp_prefix.rename(final_prefix)
+        except CondaError as exc:
+            rm_rf(tmp_prefix)
+            raise SolveError(tool, str(exc)) from exc
         except OSError:
             rm_rf(tmp_prefix)
             if final_prefix.is_dir() and (final_prefix / "conda-meta").is_dir():

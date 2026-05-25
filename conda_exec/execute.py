@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from conda.core import prefix_data
+from conda.exceptions import InvalidMatchSpec
 from conda.models.match_spec import MatchSpec
 from packaging.specifiers import InvalidSpecifier, SpecifierSet
 
@@ -17,6 +18,7 @@ from .cache import CacheManager
 from .exceptions import (
     BinaryNotFoundError,
     CondaExecError,
+    InvalidToolMatchSpecError,
     PyPIDependencyError,
     PythonVersionError,
 )
@@ -77,12 +79,16 @@ def execute_run(args: Namespace) -> int:
     if is_script_path(tool) and script_path.is_file():
         return execute_script(args, script_path)
 
-    name = MatchSpec(tool).name
-    channels = args.channels or DEFAULT_CHANNELS
-    specs = [tool] + (args.with_specs or [])
-    tool_args = strip_tool_separator(args)
-
     try:
+        try:
+            name = MatchSpec(tool).name
+        except InvalidMatchSpec as exc:
+            raise InvalidToolMatchSpecError(tool, str(exc)) from exc
+
+        channels = args.channels or DEFAULT_CHANNELS
+        specs = [tool] + (args.with_specs or [])
+        tool_args = strip_tool_separator(args)
+
         cache = CacheManager()
         key = cache.cache_key(name, specs, channels)
 
@@ -129,7 +135,6 @@ def execute_script(args: Namespace, script_path: Path) -> int:
     metadata = script.parse_script_metadata(str(script_path))
 
     has_metadata = metadata is not None
-    has_conda_deps = bool(metadata and metadata.conda_dependencies)
     has_pypi_deps = bool(metadata and metadata.pypi_dependencies)
     has_cli_extras = args.with_specs or args.channels
 

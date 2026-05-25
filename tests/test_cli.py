@@ -170,6 +170,18 @@ def test_execute_run_missing_tool(
     assert "missing TOOL argument" in capsys.readouterr().err
 
 
+def test_execute_run_invalid_tool_spec(
+    parser: ArgumentParser,
+    capsys: pytest.CaptureFixture,
+):
+    args = parser.parse_args(["./missing.py"])
+    rc = execute_run(args)
+    err = capsys.readouterr().err
+    assert rc == 1
+    assert "invalid match spec" in err
+    assert "Traceback" not in err
+
+
 def test_execute_run_strips_separator(
     parser: ArgumentParser,
     monkeypatch: pytest.MonkeyPatch,

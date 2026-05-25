@@ -196,14 +196,14 @@ def test_create_no_solver_backend(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
 def test_create_solve_failure_cleans_tmp(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    from conda.exceptions import UnsatisfiableError
+    from conda.exceptions import PackagesNotFoundError
 
     class FailingSolver:
         def __init__(self, *args, **kwargs):
             pass
 
         def solve_for_transaction(self):
-            raise UnsatisfiableError({})
+            raise PackagesNotFoundError(["ruff"])
 
     monkeypatch.setattr(
         "conda.base.context.context.plugin_manager.get_cached_solver_backend",
@@ -212,6 +212,25 @@ def test_create_solve_failure_cleans_tmp(
     cm = CacheManager(envs_dir=tmp_path)
     with pytest.raises(SolveError, match="ruff"):
         cm.create("ruff--abcd1234", ["ruff"], ["conda-forge"])
+
+    remaining = [p for p in tmp_path.iterdir() if p.name.startswith(".tmp-")]
+    assert remaining == []
+
+
+def test_create_invalid_match_spec_cleans_tmp(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    class FakeSolver:
+        def __init__(self, *args, **kwargs):
+            pass
+
+    monkeypatch.setattr(
+        "conda.base.context.context.plugin_manager.get_cached_solver_backend",
+        lambda: FakeSolver,
+    )
+    cm = CacheManager(envs_dir=tmp_path)
+    with pytest.raises(SolveError, match="ruff"):
+        cm.create("ruff--abcd1234", ["../ruff"], ["conda-forge"])
 
     remaining = [p for p in tmp_path.iterdir() if p.name.startswith(".tmp-")]
     assert remaining == []
