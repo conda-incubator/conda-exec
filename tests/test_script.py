@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
+from conda_exec.exceptions import ScriptMetadataError
 from conda_exec.execute import execute_run
 from conda_exec.script import (
     ScriptMetadata,
@@ -214,15 +215,6 @@ def test_extract_script_block_from_file_iterator():
         pytest.param(
             textwrap.dedent("""\
                 # /// script
-                # this is not valid toml [[[
-                # ///
-            """),
-            None,
-            id="malformed-toml",
-        ),
-        pytest.param(
-            textwrap.dedent("""\
-                # /// script
                 # ///
             """),
             ScriptMetadata(),
@@ -245,6 +237,111 @@ def test_extract_script_block_from_file_iterator():
 )
 def test_parse_script_metadata(text: str, expected: ScriptMetadata | None):
     assert parse_script_metadata(text) == expected
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        pytest.param(
+            textwrap.dedent("""\
+                # /// script
+                # this is not valid toml [[[
+                # ///
+            """),
+            "failed to parse TOML",
+            id="malformed-toml",
+        ),
+        pytest.param(
+            textwrap.dedent("""\
+                # /// script
+                # requires-python = 3.12
+                # ///
+            """),
+            "'requires-python' must be a string",
+            id="requires-python-type",
+        ),
+        pytest.param(
+            textwrap.dedent("""\
+                # /// script
+                # dependencies = "requests"
+                # ///
+            """),
+            "'dependencies' must be a list of strings",
+            id="dependencies-scalar",
+        ),
+        pytest.param(
+            textwrap.dedent("""\
+                # /// script
+                # dependencies = ["requests", 3]
+                # ///
+            """),
+            "'dependencies' must be a list of strings",
+            id="dependencies-non-string",
+        ),
+        pytest.param(
+            textwrap.dedent("""\
+                # /// script
+                # tool = "conda"
+                # ///
+            """),
+            "'tool' must be a table",
+            id="tool-scalar",
+        ),
+        pytest.param(
+            textwrap.dedent("""\
+                # /// script
+                # [tool]
+                # conda = "nope"
+                # ///
+            """),
+            "'tool.conda' must be a table",
+            id="tool-conda-scalar",
+        ),
+        pytest.param(
+            textwrap.dedent("""\
+                # /// script
+                # [tool.conda]
+                # dependencies = "numpy"
+                # ///
+            """),
+            "'tool.conda.dependencies' must be a list of strings",
+            id="conda-dependencies-scalar",
+        ),
+        pytest.param(
+            textwrap.dedent("""\
+                # /// script
+                # [tool.conda]
+                # channels = ["conda-forge", 3]
+                # ///
+            """),
+            "'tool.conda.channels' must be a list of strings",
+            id="conda-channels-non-string",
+        ),
+        pytest.param(
+            textwrap.dedent("""\
+                # /// script
+                not a comment line
+                # ///
+            """),
+            "metadata block lines must start",
+            id="invalid-line",
+        ),
+        pytest.param(
+            textwrap.dedent("""\
+                # /// script
+                # dependencies = ["requests"]
+            """),
+            "unclosed",
+            id="unclosed-block",
+        ),
+    ],
+)
+def test_parse_script_metadata_rejects_invalid_metadata(
+    text: str,
+    expected: str,
+):
+    with pytest.raises(ScriptMetadataError, match=expected):
+        parse_script_metadata(text)
 
 
 def test_parse_script_metadata_from_file(tmp_path: Path):
@@ -368,6 +465,30 @@ def test_script_pypi_deps_without_conda_pypi_fails(
     assert "conda-pypi is not installed" in err
 
 
+def test_script_invalid_metadata_fails_without_running_directly(
+    parser: ArgumentParser,
+    write_script: Callable[..., Path],
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture,
+):
+    script = write_script(
+        "# /// script\n# dependencies = \"requests\"\n# ///\nprint('should not run')\n"
+    )
+    run_calls: list[list[str]] = []
+    monkeypatch.setattr(
+        "subprocess.run",
+        lambda binary_args, **kwargs: run_calls.append(binary_args),
+    )
+
+    args = parser.parse_args([str(script)])
+    rc = execute_run(args)
+    err = capsys.readouterr().err
+    assert rc == 1
+    assert "invalid inline script metadata" in err
+    assert "dependencies" in err
+    assert run_calls == []
+
+
 def test_script_with_cli_extras(
     parser: ArgumentParser,
     write_script: Callable[..., Path],
@@ -486,10 +607,7 @@ def test_script_requires_python_only_creates_env(
     script_env: list[dict],
 ):
     script = write_script(
-        "# /// script\n"
-        '# requires-python = ">=3.12"\n'
-        "# ///\n"
-        "print('hello')\n"
+        "# /// script\n# requires-python = \">=3.12\"\n# ///\nprint('hello')\n"
     )
 
     args = parser.parse_args([str(script)])

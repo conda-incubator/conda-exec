@@ -68,6 +68,15 @@ class PyPIDependencyError(CondaExecError):
         super().__init__(self.error_message)
 
 
+class ScriptMetadataError(CondaExecError):
+    """Raised when inline script metadata is invalid."""
+
+    def __init__(self, detail: str) -> None:
+        self.error_message = f"invalid inline script metadata: {detail}"
+        self.hints: list[str] = []
+        super().__init__(self.error_message)
+
+
 class PythonVersionError(CondaExecError):
     """Raised when a script's requires-python constraint is not satisfied."""
 

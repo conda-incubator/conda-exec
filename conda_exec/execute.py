@@ -132,16 +132,16 @@ def execute_script(args: Namespace, script_path: Path) -> int:
     """Execute a Python script with PEP 723 inline metadata."""
     tool_args = strip_tool_separator(args)
 
-    metadata = script.parse_script_metadata(str(script_path))
-
-    has_metadata = metadata is not None
-    has_pypi_deps = bool(metadata and metadata.pypi_dependencies)
-    has_cli_extras = args.with_specs or args.channels
-
-    if not has_metadata and not has_cli_extras:
-        return run_script_directly(script_path, tool_args)
-
     try:
+        metadata = script.parse_script_metadata(str(script_path))
+
+        has_metadata = metadata is not None
+        has_pypi_deps = bool(metadata and metadata.pypi_dependencies)
+        has_cli_extras = args.with_specs or args.channels
+
+        if not has_metadata and not has_cli_extras:
+            return run_script_directly(script_path, tool_args)
+
         if has_pypi_deps:
             from .pypi import is_available
 
