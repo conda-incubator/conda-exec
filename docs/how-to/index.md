@@ -23,6 +23,13 @@ Run Python scripts with inline dependency metadata.
 Control the conda-exec package cache.
 :::
 
+:::{grid-item-card} {octicon}`lock` Lock scripts
+:link: lock-scripts
+:link-type: doc
+
+Generate sidecar or embedded lock data for reproducible scripts.
+:::
+
 :::{grid-item-card} {octicon}`package` Use custom channels
 :link: use-channels
 :link-type: doc

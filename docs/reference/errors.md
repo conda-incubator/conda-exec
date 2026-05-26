@@ -83,6 +83,19 @@ satisfied by the Python version in the environment.
 conda exec: script requires Python <required>, but the environment has <available>
 ```
 
+### ScriptLockError
+
+Raised when script lock data cannot be generated, embedded, read, or used
+to create an environment.
+
+```text
+conda exec: script lock error: <detail>
+```
+
+Common causes include missing support for conda's registered lockfile
+exporter/specifier plugins, lock data larger than the supported size limit,
+or using `--lock` on a script without metadata or `--with` specs.
+
 ## Execution errors
 
 These errors occur after the environment is ready, when conda-exec
@@ -117,6 +130,15 @@ conda exec: missing TOOL argument
 usage: conda exec [OPTIONS] TOOL [ARGS...]
        conda exec --list
        conda exec --clean
+```
+
+### --embed without --lock (exit 2)
+
+`--embed` only changes where generated lock data is written, so it must be
+used with `--lock`.
+
+```text
+conda exec: --embed requires --lock
 ```
 
 ## Warnings

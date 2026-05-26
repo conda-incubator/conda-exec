@@ -86,3 +86,12 @@ class PythonVersionError(CondaExecError):
         )
         self.hints: list[str] = []
         super().__init__(self.error_message)
+
+
+class ScriptLockError(CondaExecError):
+    """Raised when script lockfile handling fails."""
+
+    def __init__(self, detail: str, hints: list[str] | None = None) -> None:
+        self.error_message = f"script lock error: {detail}"
+        self.hints = hints or []
+        super().__init__(self.error_message)

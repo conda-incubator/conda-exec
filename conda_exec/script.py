@@ -41,9 +41,13 @@ def parse_script_metadata(path_or_text: str) -> ScriptMetadata | None:
         if script_path.stat().st_size > MAX_SCRIPT_SIZE:
             return None
         with script_path.open(encoding="utf-8") as source_file:
-            toml_str = extract_script_block(source_file, strict=True)
+            toml_str = extract_script_block(
+                source_file,
+                block_type="script",
+                strict=True,
+            )
     else:
-        toml_str = extract_script_block(path_or_text, strict=True)
+        toml_str = extract_script_block(path_or_text, block_type="script", strict=True)
 
     if toml_str is None:
         return None
@@ -98,6 +102,7 @@ def parse_script_metadata(path_or_text: str) -> ScriptMetadata | None:
 def extract_script_block(
     source: str | Iterable[str],
     *,
+    block_type: str = "script",
     strict: bool = False,
 ) -> str | None:
     """Extract the TOML content from a ``# /// script`` block.
@@ -120,7 +125,7 @@ def extract_script_block(
     for line in lines:
         if not collecting:
             match = SCRIPT_MARKER_RE.match(line)
-            if match and match.group("type") == "script":
+            if match and match.group("type") == block_type:
                 collecting = True
             continue
 
@@ -140,9 +145,9 @@ def extract_script_block(
 
     if collecting:
         if strict:
-            raise ScriptMetadataError("unclosed '# /// script' block")
+            raise ScriptMetadataError(f"unclosed '# /// {block_type}' block")
         print(
-            "conda exec: warning: unclosed '# /// script' block",
+            f"conda exec: warning: unclosed '# /// {block_type}' block",
             file=sys.stderr,
         )
         return None

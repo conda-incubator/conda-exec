@@ -44,6 +44,17 @@ ce --clean [OPTIONS] [TOOL]
 `--refresh`
 : Force re-creation of the cached environment.
 
+`--lock`
+: Write or use lock data for a script environment. Script-only.
+
+`--embed`
+: Embed generated lock data in the script instead of writing a sidecar
+  lockfile. Requires `--lock`.
+
+`--platform SUBDIR`
+: Platform/subdir to include when writing lock data (repeatable). Examples:
+  `linux-64`, `osx-arm64`, `win-64`. Only used with `--lock`.
+
 `--list`
 : Show all cached environments (mutually exclusive with `--clean`).
 
@@ -151,9 +162,38 @@ conda exec --with numpy script.py -- --flag value
 # Force re-creation of the script environment
 conda exec --refresh script.py
 
+# Generate sidecar lock data
+conda exec --lock script.py
+
+# Embed lock data into the script
+conda exec --lock --embed script.py
+
+# Generate lock data for multiple platforms
+conda exec --lock --platform linux-64 --platform osx-arm64 script.py
+
 # Script without metadata (runs with current Python)
 conda exec hello.py
 ```
+
+### Script lock data
+
+`conda exec --lock script.py`
+: Resolves the script environment and writes a sidecar lockfile using the
+  default filename from conda's selected lockfile exporter. With the default
+  `conda-lock-v1` exporter, this is `script.py.conda-lock.yml`.
+
+`conda exec --lock --embed script.py`
+: Resolves the script environment and writes a generated
+  `# /// conda-exec-lock` block into `script.py`.
+
+`conda exec script.py`
+: Uses embedded lock data first, then a sidecar lockfile, then falls back to
+  solving from PEP 723 metadata.
+
+`conda exec --refresh script.py`
+: Ignores lock data and solves from metadata.
+
+`--lock` is only supported for scripts. `--embed` requires `--lock`.
 
 ## conda exec --list
 

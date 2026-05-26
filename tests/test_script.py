@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import textwrap
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
 
 from conda_exec.exceptions import ScriptMetadataError
 from conda_exec.execute import execute_run
+from conda_exec.lockfile import ScriptLockManager
 from conda_exec.script import (
     ScriptMetadata,
     extract_script_block,
@@ -18,7 +20,6 @@ from conda_exec.script import (
 if TYPE_CHECKING:
     from argparse import ArgumentParser
     from collections.abc import Callable
-    from pathlib import Path
 
 
 SCRIPT_CONDA_ONLY = textwrap.dedent("""\
@@ -398,6 +399,21 @@ def test_script_no_metadata_runs_directly(
     assert str(script.resolve()) in run_calls[0][1]
 
 
+def test_script_lock_without_metadata_fails(
+    parser: ArgumentParser,
+    write_script: Callable[..., Path],
+    capsys: pytest.CaptureFixture,
+):
+    script = write_script(SCRIPT_NO_METADATA)
+
+    args = parser.parse_args(["--lock", str(script)])
+    rc = execute_run(args)
+    err = capsys.readouterr().err
+
+    assert rc == 1
+    assert "cannot generate lock data" in err
+
+
 @pytest.mark.parametrize(
     ("content", "pypi_available", "expected_specs", "expected_channels"),
     [
@@ -501,6 +517,157 @@ def test_script_with_cli_extras(
     assert len(script_env) == 1
     assert "pytest" in script_env[0]["specs"]
     assert "defaults" in script_env[0]["channels"]
+
+
+def test_script_lock_writes_sidecar(
+    parser: ArgumentParser,
+    write_script: Callable[..., Path],
+    script_env: list[dict],
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture,
+):
+    script = write_script(SCRIPT_CONDA_ONLY)
+    monkeypatch.setattr(
+        "conda_exec.lockfile.ScriptLockManager.export_content",
+        lambda self, prefix, platforms=None: "lock: true\n",
+    )
+
+    args = parser.parse_args(["--lock", str(script)])
+    rc = execute_run(args)
+
+    lock_path = ScriptLockManager().default_sidecar_path(script)
+    assert rc == 0
+    assert len(script_env) == 1
+    assert lock_path.read_text() == "lock: true\n"
+    assert f"Wrote lock data to {lock_path}" in capsys.readouterr().err
+
+
+def test_script_lock_embeds_lock_data(
+    parser: ArgumentParser,
+    write_script: Callable[..., Path],
+    script_env: list[dict],
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture,
+):
+    script = write_script(SCRIPT_CONDA_ONLY)
+    monkeypatch.setattr(
+        "conda_exec.lockfile.ScriptLockManager.export_content",
+        lambda self, prefix, platforms=None: "lock: true\n",
+    )
+
+    args = parser.parse_args(["--lock", "--embed", str(script)])
+    rc = execute_run(args)
+
+    content = script.read_text()
+    assert rc == 0
+    assert len(script_env) == 1
+    assert "# /// conda-exec-lock\n" in content
+    assert "# lock: true\n" in content
+    assert f"Wrote lock data to {script}" in capsys.readouterr().err
+
+
+def test_script_lock_passes_platforms_to_export(
+    parser: ArgumentParser,
+    write_script: Callable[..., Path],
+    script_env: list[dict],
+    monkeypatch: pytest.MonkeyPatch,
+):
+    script = write_script(SCRIPT_CONDA_ONLY)
+    received_platforms: list[list[str] | None] = []
+
+    def export_lock_content(
+        self,
+        prefix: Path,
+        platforms: list[str] | None = None,
+    ) -> str:
+        received_platforms.append(platforms)
+        return "lock: true\n"
+
+    monkeypatch.setattr(
+        "conda_exec.lockfile.ScriptLockManager.export_content",
+        export_lock_content,
+    )
+
+    args = parser.parse_args(
+        ["--lock", "--platform", "linux-64", "--platform", "osx-arm64", str(script)]
+    )
+    rc = execute_run(args)
+
+    assert rc == 0
+    assert len(script_env) == 1
+    assert received_platforms == [["linux-64", "osx-arm64"]]
+
+
+def test_script_uses_embedded_lock_before_solving(
+    parser: ArgumentParser,
+    write_script: Callable[..., Path],
+    monkeypatch: pytest.MonkeyPatch,
+):
+    script = write_script(
+        "# /// conda-exec-lock\n# embedded: true\n# ///\nprint('hello')\n"
+    )
+    received: list[str] = []
+
+    def get_or_create_from_lock(self, key, content):
+        received.append(content)
+        return Path("/fake"), False
+
+    monkeypatch.setattr(
+        "conda_exec.cache.CacheManager.get_or_create_from_lock",
+        get_or_create_from_lock,
+    )
+    monkeypatch.setattr(
+        "conda_exec.cache.CacheManager.create",
+        lambda self, key, specs, channels: pytest.fail("solver should not run"),
+    )
+    monkeypatch.setattr(
+        "conda_exec.binaries.find_python",
+        lambda prefix: Path("/fake/bin/python"),
+    )
+    monkeypatch.setattr("conda_exec.run.run_in_prefix", lambda *args, **kwargs: 0)
+
+    args = parser.parse_args([str(script)])
+    rc = execute_run(args)
+
+    assert rc == 0
+    assert received == ["embedded: true"]
+
+
+def test_script_falls_back_when_lock_is_unusable(
+    parser: ArgumentParser,
+    write_script: Callable[..., Path],
+    script_env: list[dict],
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture,
+):
+    script = write_script(
+        "# /// script\n"
+        "# [tool.conda]\n"
+        '# dependencies = ["samtools>=1.19"]\n'
+        "# ///\n"
+        "\n"
+        "# /// conda-exec-lock\n"
+        "# stale: true\n"
+        "# ///\n"
+        "print('hello')\n"
+    )
+
+    def fail_from_lock(self, key, content):
+        from conda_exec.exceptions import ScriptLockError
+
+        raise ScriptLockError("platform is missing")
+
+    monkeypatch.setattr(
+        "conda_exec.cache.CacheManager.get_or_create_from_lock",
+        fail_from_lock,
+    )
+
+    args = parser.parse_args([str(script)])
+    rc = execute_run(args)
+
+    assert rc == 0
+    assert len(script_env) == 1
+    assert "ignoring unusable embedded lock data" in capsys.readouterr().err
 
 
 @pytest.mark.parametrize(

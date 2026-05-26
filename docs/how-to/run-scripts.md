@@ -141,3 +141,24 @@ If the cached script environment is stale:
 ```bash
 conda exec --refresh script.py
 ```
+
+## Reproduce exact environments
+
+Use `--lock` when the resolved package versions should be recorded:
+
+```bash
+conda exec --lock script.py
+```
+
+With the default `conda-lock-v1` exporter, this writes
+`script.py.conda-lock.yml`. Future `conda exec script.py` runs use the lock
+data instead of solving from metadata when possible.
+
+For single-file distribution, embed generated lock data in the script:
+
+```bash
+conda exec --lock --embed script.py
+```
+
+See [Lock script environments](lock-scripts.md) for sidecar, embedded, and
+multi-platform lock workflows.

@@ -15,29 +15,27 @@ from packaging.specifiers import InvalidSpecifier, SpecifierSet
 
 from . import binaries, run, script
 from .cache import CacheManager
+from .cli import tool_looks_like_script
 from .exceptions import (
     BinaryNotFoundError,
     CondaExecError,
     InvalidToolMatchSpecError,
     PyPIDependencyError,
     PythonVersionError,
+    ScriptLockError,
 )
 
 if TYPE_CHECKING:
     from argparse import Namespace
 
-DEFAULT_CHANNELS = ["conda-forge"]
+    from .lockfile import ScriptLockManager
 
-SCRIPT_EXTENSIONS = {".py", ".pyw"}
+DEFAULT_CHANNELS = ["conda-forge"]
 
 
 def is_script_path(tool: str) -> bool:
     """Check if the tool argument looks like a script path."""
-    return (
-        "/" in tool
-        or "\\" in tool
-        or any(tool.endswith(ext) for ext in SCRIPT_EXTENSIONS)
-    )
+    return tool_looks_like_script(tool)
 
 
 def strip_tool_separator(args: Namespace) -> list[str]:
@@ -133,13 +131,27 @@ def execute_script(args: Namespace, script_path: Path) -> int:
     tool_args = strip_tool_separator(args)
 
     try:
+        from .lockfile import ScriptLockManager
+
         metadata = script.parse_script_metadata(str(script_path))
 
         has_metadata = metadata is not None
         has_pypi_deps = bool(metadata and metadata.pypi_dependencies)
         has_cli_extras = args.with_specs or args.channels
 
+        cache = CacheManager()
+        locks = ScriptLockManager()
+
+        locked_rc = run_existing_lock(args, script_path, metadata, cache, locks)
+        if locked_rc is not None:
+            return locked_rc
+
         if not has_metadata and not has_cli_extras:
+            if args.lock:
+                raise ScriptLockError(
+                    "cannot generate lock data for a script without metadata",
+                    hints=["add a PEP 723 '# /// script' block or pass --with"],
+                )
             return run_script_directly(script_path, tool_args)
 
         if has_pypi_deps:
@@ -147,8 +159,6 @@ def execute_script(args: Namespace, script_path: Path) -> int:
 
             if not is_available():
                 raise PyPIDependencyError
-
-        cache = CacheManager()
 
         channels = list(metadata.conda_channels) if metadata else []
         if args.channels:
@@ -185,6 +195,16 @@ def execute_script(args: Namespace, script_path: Path) -> int:
         if created:
             print_created_message("script", start_time)
 
+        if args.lock:
+            lock_path = locks.default_sidecar_path(script_path)
+            lock_content = locks.export_content(prefix, args.lock_platforms)
+            if args.embed:
+                locks.write_embedded(script_path, lock_content)
+                lock_path = script_path
+            else:
+                lock_path = locks.write_sidecar(script_path, lock_content)
+            print(f"Wrote lock data to {lock_path}", file=sys.stderr)
+
         if metadata and metadata.requires_python:
             check_requires_python(prefix, metadata.requires_python)
 
@@ -206,6 +226,71 @@ def execute_script(args: Namespace, script_path: Path) -> int:
     except CondaExecError as exc:
         print_exec_error(exc)
         return 1
+
+
+def run_existing_lock(
+    args: Namespace,
+    script_path: Path,
+    metadata: script.ScriptMetadata | None,
+    cache: CacheManager,
+    locks: ScriptLockManager,
+) -> int | None:
+    """Run a script from existing lock data when that is the active fast path."""
+    if args.lock or args.refresh or args.with_specs or args.channels:
+        return None
+
+    script_lock = locks.discover(script_path)
+    if script_lock is None:
+        return None
+
+    try:
+        start_time = time.monotonic()
+        prefix, created = cache.get_or_create_from_lock(
+            cache.script_lock_cache_key(script_lock.content),
+            script_lock.content,
+        )
+        if created:
+            print_created_message("locked script", start_time)
+        if metadata and metadata.requires_python:
+            check_requires_python(prefix, metadata.requires_python)
+        return run_locked_script(
+            prefix,
+            script_path,
+            strip_tool_separator(args),
+            args.activate,
+        )
+    except ScriptLockError as exc:
+        if metadata is None:
+            raise
+        print(
+            f"conda exec: warning: ignoring unusable "
+            f"{script_lock.source} lock data: {exc.error_message}",
+            file=sys.stderr,
+        )
+        return None
+
+
+def run_locked_script(
+    prefix: Path,
+    script_path: Path,
+    args: list[str],
+    activate: bool,
+) -> int:
+    """Run a script from an environment created from lock data."""
+    python = binaries.find_python(prefix)
+    if python is None:
+        print(
+            "conda exec: python not found in script environment",
+            file=sys.stderr,
+        )
+        return 1
+
+    return run.run_in_prefix(
+        prefix,
+        python,
+        [str(script_path.resolve()), *args],
+        activate=activate,
+    )
 
 
 def run_script_directly(script_path: Path, args: list[str]) -> int:

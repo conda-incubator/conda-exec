@@ -25,6 +25,20 @@ conda-exec stores cached environments under a platform-specific data directory.
         python
 ```
 
+Script lockfiles are stored next to scripts, not inside `~/.conda/exec/`:
+
+```text
+project/
+  script.py
+  script.py.conda-lock.yml
+```
+
+The exact sidecar name is derived from conda's lockfile exporter metadata.
+`script.py.conda-lock.yml` is the default for the `conda-lock-v1` exporter.
+
+Embedded lock data lives inside the script in a generated
+`# /// conda-exec-lock` block.
+
 ## Cache key
 
 ### Tool cache key
@@ -50,6 +64,10 @@ The hash is computed from the metadata content, not the file path or
 script code. Changing only the code without changing dependencies reuses
 the same cached environment. Two different scripts with identical
 dependency declarations share the same cached environment.
+
+When a script runs from lock data, the cache key is still `script--{hash}`,
+but the hash is derived from the lock content. Updating sidecar or embedded
+lock data creates a distinct cached environment.
 
 ## Default path
 

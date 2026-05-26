@@ -23,6 +23,13 @@ How conda-exec works under the hood.
 How the environment cache works.
 :::
 
+:::{grid-item-card} {octicon}`lock` Script locks
+:link: script-locks
+:link-type: doc
+
+Why lock data is separate from inline dependency metadata.
+:::
+
 :::{grid-item-card} {octicon}`shield` Security model
 :link: security
 :link-type: doc

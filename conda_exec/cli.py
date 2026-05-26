@@ -2,11 +2,45 @@
 
 from __future__ import annotations
 
-from argparse import REMAINDER
+from argparse import REMAINDER, Action
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
+    from collections.abc import Sequence
+
+SCRIPT_EXTENSIONS = {".py", ".pyw"}
+
+
+def tool_looks_like_script(tool: str) -> bool:
+    """Return whether a tool argument uses script-path syntax."""
+    return (
+        "/" in tool
+        or "\\" in tool
+        or any(tool.endswith(ext) for ext in SCRIPT_EXTENSIONS)
+    )
+
+
+class ToolAction(Action):
+    """Validate positional TOOL constraints that depend on earlier flags."""
+
+    def __call__(
+        self,
+        parser: ArgumentParser,
+        namespace: Namespace,
+        values: str | Sequence[object] | None,
+        option_string: str | None = None,
+    ) -> None:
+        if values is not None and not isinstance(values, str):
+            parser.error("TOOL must be a single argument")
+
+        if values is not None and namespace.embed and not namespace.lock:
+            parser.error("--embed requires --lock")
+        if values is not None and namespace.lock:
+            if not tool_looks_like_script(values) or not Path(values).is_file():
+                parser.error("--lock is only supported for existing script files")
+        setattr(namespace, self.dest, values)
 
 
 def configure_parser(parser: ArgumentParser) -> None:
@@ -63,6 +97,29 @@ def configure_parser(parser: ArgumentParser) -> None:
         default=False,
         help="Force re-creation of the cached environment.",
     )
+    parser.add_argument(
+        "--lock",
+        action="store_true",
+        default=False,
+        help="Write or use lock data for a script environment.",
+    )
+    parser.add_argument(
+        "--embed",
+        action="store_true",
+        default=False,
+        help=(
+            "Embed generated lock data in the script instead of writing a "
+            "sidecar lockfile."
+        ),
+    )
+    parser.add_argument(
+        "--platform",
+        action="append",
+        default=None,
+        dest="lock_platforms",
+        metavar="SUBDIR",
+        help="Platform/subdir to include when writing lock data (repeatable).",
+    )
 
     parser.add_argument(
         "--json",
@@ -104,6 +161,7 @@ def configure_parser(parser: ArgumentParser) -> None:
 
     parser.add_argument(
         "tool",
+        action=ToolAction,
         nargs="?",
         default=None,
         metavar="TOOL",

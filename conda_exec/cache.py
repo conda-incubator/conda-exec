@@ -78,6 +78,21 @@ class CacheManager:
             return prefix, False
         return self.create(key, specs, channels), True
 
+    def get_or_create_from_lock(self, key: str, lock_content: str) -> tuple[Path, bool]:
+        """Return a cached prefix from lock data and whether it was newly created."""
+        prefix = self.prefix_for(key)
+        if prefix.is_dir() and (prefix / "conda-meta").is_dir():
+            self.touch(prefix)
+            return prefix, False
+
+        from .lockfile import ScriptLockManager
+
+        return ScriptLockManager().create_environment(
+            self.envs_dir,
+            prefix,
+            lock_content,
+        ), True
+
     def create(
         self,
         key: str,
@@ -261,6 +276,11 @@ class CacheManager:
         ]
         blob = "||".join(parts)
         key_hash = hashlib.sha256(blob.encode()).hexdigest()[:16]
+        return f"script--{key_hash}"
+
+    def script_lock_cache_key(self, lock_content: str) -> str:
+        """Compute a deterministic cache key for script lock data."""
+        key_hash = hashlib.sha256(lock_content.encode()).hexdigest()[:16]
         return f"script--{key_hash}"
 
     def touch(self, prefix: Path) -> None:

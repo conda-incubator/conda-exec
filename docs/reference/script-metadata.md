@@ -163,6 +163,25 @@ script body. This means:
 - Changing any dependency, channel, or the `requires-python` value
   produces a different cache key and a new environment.
 
+## Embedded lock block
+
+When `conda exec --lock --embed script.py` is used, conda-exec writes a
+generated `# /// conda-exec-lock` block into the script.
+
+```python
+# /// conda-exec-lock
+# ...generated lock data...
+# ///
+```
+
+This block is not PEP 723 metadata. It is generated lock state. Keep
+dependency intent in the `# /// script` block and let conda-exec update the
+lock block.
+
+When running a script, conda-exec checks embedded lock data before sibling
+sidecar lockfiles. If lock data is present, the cached environment key is
+derived from the lock content instead of the metadata block.
+
 ## Examples
 
 ### Conda dependencies only

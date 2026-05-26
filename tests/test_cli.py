@@ -81,6 +81,44 @@ def test_parse_with_specs(parser: ArgumentParser):
     assert args.tool == "ruff"
 
 
+def test_parse_lock_script(
+    parser: ArgumentParser,
+    write_script,
+):
+    script = write_script("print('hello')\n")
+
+    args = parser.parse_args(["--lock", str(script)])
+
+    assert args.lock is True
+    assert args.tool == str(script)
+
+
+def test_parse_lock_embed_script(
+    parser: ArgumentParser,
+    write_script,
+):
+    script = write_script("print('hello')\n")
+
+    args = parser.parse_args(["--lock", "--embed", str(script)])
+
+    assert args.lock is True
+    assert args.embed is True
+    assert args.tool == str(script)
+
+
+def test_parse_lock_platforms(
+    parser: ArgumentParser,
+    write_script,
+):
+    script = write_script("print('hello')\n")
+
+    args = parser.parse_args(
+        ["--lock", "--platform", "linux-64", "--platform", "osx-arm64", str(script)]
+    )
+
+    assert args.lock_platforms == ["linux-64", "osx-arm64"]
+
+
 def test_parse_all_options(parser: ArgumentParser):
     args = parser.parse_args(
         [
@@ -203,6 +241,18 @@ def test_dispatch_clean_passes_flags(
     assert received_args[0].tool == "ruff"
 
 
+def test_parse_embed_requires_lock(
+    parser: ArgumentParser,
+    capsys: pytest.CaptureFixture,
+    write_script,
+):
+    script = write_script("print('hello')\n")
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["--embed", str(script)])
+    assert "--embed requires --lock" in capsys.readouterr().err
+
+
 def test_execute_run_missing_tool(
     parser: ArgumentParser,
     capsys: pytest.CaptureFixture,
@@ -211,6 +261,16 @@ def test_execute_run_missing_tool(
     rc = execute_run(args)
     assert rc == 2
     assert "missing TOOL argument" in capsys.readouterr().err
+
+
+def test_parse_lock_requires_existing_script(
+    parser: ArgumentParser,
+    capsys: pytest.CaptureFixture,
+):
+    with pytest.raises(SystemExit):
+        parser.parse_args(["--lock", "ruff"])
+    err = capsys.readouterr().err
+    assert "--lock is only supported for existing script files" in err
 
 
 def test_execute_run_invalid_tool_spec(

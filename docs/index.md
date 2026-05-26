@@ -107,6 +107,7 @@ Run a script <tutorials/run-script>
 :caption: How-to guides
 
 Run scripts <how-to/run-scripts>
+Lock scripts <how-to/lock-scripts>
 Manage cache <how-to/manage-cache>
 Use channels <how-to/use-channels>
 Use activation <how-to/use-activation>
@@ -132,6 +133,7 @@ Script metadata <reference/script-metadata>
 
 Architecture <explanation/architecture>
 Caching <explanation/caching>
+Script locks <explanation/script-locks>
 Security <explanation/security>
 Prior art <explanation/prior-art>
 ```
