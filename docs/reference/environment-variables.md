@@ -17,6 +17,48 @@ Environment variables that conda-exec reads, sets, or respects during operation.
   # Environment stored at /scratch/conda-exec/envs/ruff--<hash>/
   ```
 
+`CONDA_EXEC_AUTO_CLEAN`
+: Enable or disable automatic cache cleanup after successful tool runs.
+  Default: `true`. Accepted truthy values are `1`, `true`, `yes`, and
+  `on`; accepted falsy values are `0`, `false`, `no`, and `off`.
+
+  ```bash
+  export CONDA_EXEC_AUTO_CLEAN=false
+  ```
+
+`CONDA_EXEC_CLEAN_INTERVAL`
+: Number of successful `conda exec TOOL` runs between automatic cleanup
+  checks. Default: `50`. Values must be positive integers.
+
+  ```bash
+  export CONDA_EXEC_CLEAN_INTERVAL=25
+  ```
+
+`CONDA_EXEC_CLEAN_AGE`
+: Remove cached environments that have not been used in this many days
+  when automatic cleanup runs. Default: `30`. Values must be zero or
+  greater.
+
+  ```bash
+  export CONDA_EXEC_CLEAN_AGE=14
+  ```
+
+## conda plugin settings
+
+Automatic cleanup can also be configured persistently through conda's
+plugin configuration in `.condarc`:
+
+```yaml
+plugins:
+  conda_exec_auto_clean: true
+  conda_exec_clean_interval: 50
+  conda_exec_clean_age: 30
+```
+
+The direct `CONDA_EXEC_*` variables above override these plugin settings.
+conda's standard plugin environment variable form is also supported, for
+example `CONDA_PLUGINS_CONDA_EXEC_AUTO_CLEAN=false`.
+
 ## Variables set during tool execution
 
 `PATH`

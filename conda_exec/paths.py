@@ -36,3 +36,8 @@ def data_dir() -> Path:
 def envs_dir() -> Path:
     """Return the directory for cached tool environments."""
     return data_dir() / "envs"
+
+
+def run_count_file() -> Path:
+    """Return the file used for the automatic cleanup invocation counter."""
+    return data_dir() / "run-count"

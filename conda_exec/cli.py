@@ -146,4 +146,9 @@ def execute(args: Namespace) -> int:
 
     from .execute import execute_run
 
-    return execute_run(args)
+    rc = execute_run(args)
+    if rc == 0:
+        from .auto_clean import auto_clean_after_success
+
+        auto_clean_after_success()
+    return rc

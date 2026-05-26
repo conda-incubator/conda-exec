@@ -126,10 +126,53 @@ def test_dispatch(
 ):
     calls: list[str] = []
     monkeypatch.setattr(target, lambda args: (calls.append(label), 0)[1])
+    monkeypatch.setattr("conda_exec.auto_clean.auto_clean_after_success", lambda: None)
     args = parser.parse_args(argv)
     rc = execute(args)
     assert rc == 0
     assert calls == [label]
+
+
+def test_dispatch_run_auto_cleans_after_success(
+    parser: ArgumentParser,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    calls: list[str] = []
+    monkeypatch.setattr(
+        "conda_exec.execute.execute_run",
+        lambda args: (calls.append("run"), 0)[1],
+    )
+    monkeypatch.setattr(
+        "conda_exec.auto_clean.auto_clean_after_success",
+        lambda: calls.append("auto-clean"),
+    )
+
+    args = parser.parse_args(["ruff"])
+    rc = execute(args)
+
+    assert rc == 0
+    assert calls == ["run", "auto-clean"]
+
+
+def test_dispatch_run_skips_auto_clean_after_failure(
+    parser: ArgumentParser,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    calls: list[str] = []
+    monkeypatch.setattr(
+        "conda_exec.execute.execute_run",
+        lambda args: (calls.append("run"), 1)[1],
+    )
+    monkeypatch.setattr(
+        "conda_exec.auto_clean.auto_clean_after_success",
+        lambda: calls.append("auto-clean"),
+    )
+
+    args = parser.parse_args(["ruff"])
+    rc = execute(args)
+
+    assert rc == 1
+    assert calls == ["run"]
 
 
 def test_dispatch_list_passes_json(

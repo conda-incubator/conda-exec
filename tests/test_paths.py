@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from conda_exec.paths import data_dir, envs_dir
+from conda_exec.paths import data_dir, envs_dir, run_count_file
 
 
 @pytest.fixture(autouse=True)
@@ -60,6 +60,13 @@ def test_envs_dir_is_subdir_of_data_dir(
 ):
     monkeypatch.setenv("CONDA_EXEC_HOME", str(tmp_path))
     assert envs_dir() == tmp_path / "envs"
+
+
+def test_run_count_file_is_under_data_dir(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+):
+    monkeypatch.setenv("CONDA_EXEC_HOME", str(tmp_path))
+    assert run_count_file() == tmp_path / "run-count"
 
 
 def test_data_dir_tilde_expansion(monkeypatch: pytest.MonkeyPatch):

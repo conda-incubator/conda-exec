@@ -42,6 +42,35 @@ Remove caches for a specific tool:
 conda exec --clean ruff
 ```
 
+## Automatic cleanup
+
+conda-exec automatically checks for stale cached environments after every
+50 successful tool runs. The check removes environments that have not
+been used in 30 days and stays silent unless it actually removes
+something.
+
+Disable automatic cleanup for one shell:
+
+```bash
+export CONDA_EXEC_AUTO_CLEAN=false
+```
+
+Change the interval or age:
+
+```bash
+export CONDA_EXEC_CLEAN_INTERVAL=25
+export CONDA_EXEC_CLEAN_AGE=14
+```
+
+For persistent configuration, use conda's plugin settings in `.condarc`:
+
+```yaml
+plugins:
+  conda_exec_auto_clean: true
+  conda_exec_clean_interval: 50
+  conda_exec_clean_age: 30
+```
+
 ## Force re-creation
 
 ```{note}

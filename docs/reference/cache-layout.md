@@ -6,6 +6,7 @@ conda-exec stores cached environments under a platform-specific data directory.
 
 ```text
 ~/.conda/exec/
+  run-count                    # automatic cleanup invocation counter
   envs/
     ruff--a3f8b2c1/           # cached env for bare `conda exec ruff`
       conda-meta/
@@ -74,3 +75,7 @@ conda-exec uses conda's own `PrefixData` API for staleness tracking:
 - `conda-meta/history` mtime: updated on each `conda exec` invocation
 
 The `conda exec --clean` command reads `PrefixData.last_modified` to determine which environments are stale.
+
+Automatic cleanup uses the same staleness data. It stores a best-effort
+invocation counter in `~/.conda/exec/run-count` and checks for stale
+environments only when the configured interval is reached.
