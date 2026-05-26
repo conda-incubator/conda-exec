@@ -2,20 +2,17 @@
 
 conda-exec can run Python scripts that declare their dependencies inline
 using the [PEP 723](https://peps.python.org/pep-0723/) metadata format.
-In the examples below, copy the following block into the Python file
-itself, preferably at the top of the file before imports or executable code.
 
-```python
-# /// script
-# <your thing>
-# ///
-```
+Add a PEP 723 `# /// script` metadata block to the Python file itself,
+usually near the top before imports or executable code. The lines inside
+the block are TOML, with the leading `# ` comment prefix stripped before
+parsing.
 
-Where, `<your thing>` can be any of the examples below
+The examples below show complete metadata blocks you can copy into a script.
 
 ## Conda-only dependencies
 
-Use the pyproject.toml syntax for `[tool.conda]` to declare conda packages:
+Use TOML syntax and the `[tool.conda]` table to declare conda packages:
 
 ```python
 # /// script
