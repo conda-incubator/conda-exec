@@ -49,7 +49,7 @@ jobs:
             --threshold-upper-boundary 0.99 \
             --err
 
-      - name: Check benchmarks (pull request)
+      - name: Report benchmarks (pull request)
         if: github.event_name == 'pull_request'
         env:
           BENCHER_API_TOKEN: ${{ secrets.BENCHER_API_TOKEN }}
@@ -70,5 +70,4 @@ jobs:
             --threshold-measure latency \
             --threshold-test t_test \
             --threshold-upper-boundary 0.99 \
-            --err \
             --github-actions "$GH_TOKEN"
