@@ -162,6 +162,40 @@ def test_script_cache_reuse(
 
 
 @pytest.mark.usefixtures("exec_home")
+def test_script_lock_sidecar_reuse(
+    conda_cli: CondaCLIFixture,
+    write_script: Callable[..., Path],
+):
+    script = write_script(
+        textwrap.dedent("""\
+            # /// script
+            # [tool.conda]
+            # dependencies = ["zlib"]
+            # channels = ["conda-forge"]
+            # ///
+            print("locked")
+        """)
+    )
+
+    _, err1, code1 = conda_cli("exec", "--lock", str(script))
+    lock_path = script.with_name(f"{script.name}.conda-lock.yml")
+
+    assert code1 == 0
+    assert "Wrote lock data to" in err1
+    assert lock_path.is_file()
+
+    _, err2, code2 = conda_cli("exec", str(script))
+
+    assert code2 == 0
+    assert "Creating environment for locked script" in err2
+
+    _, err3, code3 = conda_cli("exec", str(script))
+
+    assert code3 == 0
+    assert "Creating environment" not in err3
+
+
+@pytest.mark.usefixtures("exec_home")
 def test_script_refresh_recreates_env(
     conda_cli: CondaCLIFixture,
     write_script: Callable[..., Path],
