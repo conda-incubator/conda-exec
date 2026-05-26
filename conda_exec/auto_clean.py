@@ -9,7 +9,6 @@ import tempfile
 from pathlib import Path
 
 from .cache import CacheManager
-from .clean import remove_cache_entries, select_entries_for_cleaning
 from .config import get_auto_clean_config
 from .format import format_size
 from .paths import run_count_file
@@ -68,11 +67,11 @@ def auto_clean_after_success() -> None:
             return
 
         cache = CacheManager()
-        entries = select_entries_for_cleaning(
+        entries = cache.cleanup_candidates(
             cache.list_cached(),
-            older_than=config.age_days,
+            older_than_days=config.age_days,
         )
-        result = remove_cache_entries(cache, entries)
+        result = cache.remove_entries(entries)
         write_run_count(count_file, 0)
 
         if result.removed_count:

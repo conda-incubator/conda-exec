@@ -10,7 +10,10 @@ from conda_exec.cache import CacheManager
 from conda_exec.exceptions import SolveError, SolverNotAvailableError
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from pathlib import Path
+
+    from conda_exec.cache import CacheEntry
 
 
 def test_cache_manager_default_envs_dir(exec_home: Path):
@@ -330,3 +333,64 @@ def test_list_cached_with_entries(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
     assert "ruff" in tools
     assert "samtools" in tools
     assert len(entries) == 2
+
+
+def test_cleanup_candidates_filters_by_age_and_tool(
+    tmp_path: Path,
+    cache_entry: Callable[..., CacheEntry],
+):
+    entries = [
+        cache_entry(tool="ruff", key="ruff--fresh", age_days=2),
+        cache_entry(tool="ruff", key="ruff--stale", age_days=40),
+        cache_entry(tool="samtools", key="samtools--stale", age_days=40),
+    ]
+
+    selected = CacheManager(envs_dir=tmp_path).cleanup_candidates(
+        entries,
+        older_than_days=30,
+        tool="ruff",
+    )
+
+    assert [entry.key for entry in selected] == ["ruff--stale"]
+
+
+def test_cleanup_candidates_can_remove_all_for_tool(
+    tmp_path: Path,
+    cache_entry: Callable[..., CacheEntry],
+):
+    entries = [
+        cache_entry(tool="ruff", key="ruff--fresh", age_days=2),
+        cache_entry(tool="samtools", key="samtools--fresh", age_days=2),
+    ]
+
+    selected = CacheManager(envs_dir=tmp_path).cleanup_candidates(
+        entries,
+        older_than_days=30,
+        remove_all=True,
+        tool="ruff",
+    )
+
+    assert [entry.key for entry in selected] == ["ruff--fresh"]
+
+
+def test_remove_entries_returns_summary(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    cache_entry: Callable[..., CacheEntry],
+):
+    entries = [
+        cache_entry(key="ruff--abcd1234", size=10),
+        cache_entry(key="ruff--beef9876", size=15),
+    ]
+    removed: list[str] = []
+    monkeypatch.setattr(
+        "conda_exec.cache.CacheManager.remove",
+        lambda self, key: removed.append(key),
+    )
+
+    result = CacheManager(envs_dir=tmp_path).remove_entries(entries)
+
+    assert removed == ["ruff--abcd1234", "ruff--beef9876"]
+    assert result.removed_count == 2
+    assert result.total_size == 25
+    assert result.removed_keys == removed

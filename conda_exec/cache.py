@@ -8,6 +8,7 @@ import re
 import tempfile
 import time
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -22,8 +23,6 @@ from conda.models.match_spec import MatchSpec
 from .exceptions import SolveError, SolverNotAvailableError
 
 if TYPE_CHECKING:
-    from datetime import datetime
-
     from .script import ScriptMetadata
 
 log = logging.getLogger(__name__)
@@ -45,6 +44,15 @@ class CacheEntry:
     last_modified: datetime | None
     size: int
     package_count: int
+
+
+@dataclass(frozen=True)
+class CacheRemovalResult:
+    """Summary of removed cached environments."""
+
+    removed_count: int
+    total_size: int
+    removed_keys: list[str]
 
 
 class CacheManager:
@@ -166,6 +174,45 @@ class CacheManager:
                 )
             )
         return entries
+
+    def cleanup_candidates(
+        self,
+        entries: list[CacheEntry],
+        *,
+        older_than_days: int,
+        remove_all: bool = False,
+        tool: str | None = None,
+    ) -> list[CacheEntry]:
+        """Return cached environments matching cleanup criteria."""
+        to_remove = []
+        now = datetime.now(tz=timezone.utc)
+
+        for entry in entries:
+            if tool and entry.tool != tool:
+                continue
+            if remove_all:
+                to_remove.append(entry)
+            elif entry.last_modified:
+                age_days = (now - entry.last_modified).total_seconds() / 86400
+                if age_days > older_than_days:
+                    to_remove.append(entry)
+
+        return to_remove
+
+    def remove_entries(self, entries: list[CacheEntry]) -> CacheRemovalResult:
+        """Remove cached environments and return a summary."""
+        total_size = sum(entry.size for entry in entries)
+        removed_keys = []
+
+        for entry in entries:
+            self.remove(entry.key)
+            removed_keys.append(entry.key)
+
+        return CacheRemovalResult(
+            removed_count=len(removed_keys),
+            total_size=total_size,
+            removed_keys=removed_keys,
+        )
 
     def cache_key(self, tool: str, specs: list[str], channels: list[str]) -> str:
         """Compute a deterministic cache key for a set of specs and channels.
