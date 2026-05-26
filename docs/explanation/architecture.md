@@ -64,19 +64,4 @@ conda-global manages persistent, user-facing tool installations with PATH integr
 
 ## Why require conda-rattler-solver?
 
-Ephemeral execution must be fast. The rattler solver (via resolvo) is significantly faster than classic libmamba for cold solves. Since conda-express (cx) already ships conda-rattler-solver as the default, and conda-exec is designed to ship as part of that distribution, this is a natural requirement.
-
-## Part of the conda-express ecosystem
-
-conda-exec is one of several plugins that ship with conda-express (cx), a single-binary conda distribution:
-
-| Plugin | Purpose |
-|--------|---------|
-| conda-rattler-solver | Modern solver backend |
-| conda-spawn | Subshell-based activation |
-| conda-self | Self-update |
-| conda-workspaces | Multi-environment workspaces |
-| conda-global | Persistent global tools |
-| conda-completion | Shell tab completion |
-| conda-pypi | PyPI interop layer |
-| conda-exec | Ephemeral package execution |
+Ephemeral execution must be fast. The rattler solver (via resolvo) is significantly faster than classic libmamba for cold solves, so conda-exec requires `conda-rattler-solver` for cached environment creation.

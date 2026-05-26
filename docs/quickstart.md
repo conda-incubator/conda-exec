@@ -7,8 +7,6 @@ conda install conda-exec
 ```
 
 conda-exec requires `conda-rattler-solver` for fast environment creation.
-If you use [conda-express (cx)](https://github.com/conda-incubator/conda-express),
-it is already included.
 
 ## Basic usage
 
