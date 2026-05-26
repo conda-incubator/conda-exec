@@ -70,7 +70,7 @@ jobs:
             --err
 
   check:
-    name: Check benchmarks
+    name: Report benchmarks
     needs: benchmark
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
@@ -86,7 +86,7 @@ jobs:
 
       - uses: bencherdev/bencher@50fb1e138651a46d2fb704fab1adab38c181552e # v0.6.6
 
-      - name: Check benchmarks
+      - name: Report benchmarks
         env:
           BENCHER_API_TOKEN: ${{ secrets.BENCHER_API_TOKEN }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -106,5 +106,4 @@ jobs:
             --threshold-measure latency \
             --threshold-test t_test \
             --threshold-upper-boundary 0.99 \
-            --err \
             --github-actions "$GH_TOKEN"
