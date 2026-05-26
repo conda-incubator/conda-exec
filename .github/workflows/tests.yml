@@ -39,6 +39,7 @@ jobs:
           environments: dev
       - run: pixi run -e dev lint
       - run: pixi run -e dev format-check
+      - run: pixi run -e dev typecheck
 
   tests:
     name: Test (${{ matrix.os }}, Python ${{ matrix.python-version }})

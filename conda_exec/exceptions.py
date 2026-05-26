@@ -21,6 +21,15 @@ class SolveError(CondaExecError):
         super().__init__(self.error_message)
 
 
+class InvalidToolMatchSpecError(CondaExecError):
+    """Raised when the tool argument is not a valid conda match spec."""
+
+    def __init__(self, spec: str, detail: str) -> None:
+        self.error_message = f"invalid match spec for tool {spec!r}: {detail}"
+        self.hints: list[str] = []
+        super().__init__(self.error_message)
+
+
 class BinaryNotFoundError(CondaExecError):
     """Raised when a binary is not found in the cached environment."""
 
@@ -56,6 +65,15 @@ class PyPIDependencyError(CondaExecError):
             "install it with: conda install -n base conda-pypi",
             "or remove the top-level 'dependencies' from the script metadata",
         ]
+        super().__init__(self.error_message)
+
+
+class ScriptMetadataError(CondaExecError):
+    """Raised when inline script metadata is invalid."""
+
+    def __init__(self, detail: str) -> None:
+        self.error_message = f"invalid inline script metadata: {detail}"
+        self.hints: list[str] = []
         super().__init__(self.error_message)
 
 

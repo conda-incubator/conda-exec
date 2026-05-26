@@ -5,6 +5,8 @@ from __future__ import annotations
 from conda_exec.exceptions import (
     BinaryNotFoundError,
     CondaExecError,
+    InvalidToolMatchSpecError,
+    ScriptMetadataError,
     SolveError,
     SolverNotAvailableError,
 )
@@ -26,8 +28,27 @@ def test_binary_not_found_error():
     assert isinstance(exc, CondaExecError)
 
 
+def test_invalid_tool_match_spec_error():
+    exc = InvalidToolMatchSpecError(
+        "../ruff",
+        "package name contains invalid characters",
+    )
+    assert "../ruff" in exc.error_message
+    assert "invalid characters" in exc.error_message
+    assert exc.hints == []
+    assert isinstance(exc, CondaExecError)
+
+
 def test_solver_not_available_error():
     exc = SolverNotAvailableError()
     assert "conda-rattler-solver" in exc.error_message
     assert len(exc.hints) == 2
+    assert isinstance(exc, CondaExecError)
+
+
+def test_script_metadata_error():
+    exc = ScriptMetadataError("'dependencies' must be a list of strings")
+    assert "invalid inline script metadata" in exc.error_message
+    assert "dependencies" in exc.error_message
+    assert exc.hints == []
     assert isinstance(exc, CondaExecError)

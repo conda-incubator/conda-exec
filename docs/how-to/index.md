@@ -34,7 +34,7 @@ Search bioconda, defaults, or other channels for packages.
 :link: use-activation
 :link-type: doc
 
-Apply full conda activation for tools that need CONDA_PREFIX.
+Apply conda activation environment variables for tools that need CONDA_PREFIX.
 :::
 
 :::{grid-item-card} {octicon}`pin` Pin package versions

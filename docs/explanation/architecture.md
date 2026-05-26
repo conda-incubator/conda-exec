@@ -25,7 +25,7 @@ flowchart TD
     E -- cache hit --> F["<b>binaries.py</b><br>Find binary in prefix"]
     E -- cache miss --> G["<b>Solver + transaction</b><br>Create env in ~/.conda/exec/envs/"]
     G --> F
-    F --> H["<b>run.py</b><br>subprocess.run with PATH prepend<br>(or full activation with --activate)"]
+    F --> H["<b>run.py</b><br>subprocess.run with PATH prepend<br>(or activation env vars with --activate)"]
     H --> I(["Exit code forwarded"])
 ```
 
@@ -56,7 +56,7 @@ flowchart TD
 
 ## Why not conda run?
 
-`conda run` uses `wrap_subprocess_call()` which generates activation shell scripts, captures output by default, and adds overhead. Most CLI tools don't need full conda activation. Direct `subprocess.run` with PATH prepended is simpler, faster, and avoids output-capture pitfalls.
+`conda run` uses `wrap_subprocess_call()` which generates activation shell scripts, captures output by default, and adds overhead. Most CLI tools don't need activation environment variables. Direct `subprocess.run` with PATH prepended is simpler, faster, and avoids output-capture pitfalls.
 
 ## Why not extend conda-global?
 

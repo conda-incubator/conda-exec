@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from conda.core import prefix_data
+from conda.exceptions import InvalidMatchSpec
 from conda.models.match_spec import MatchSpec
 from packaging.specifiers import InvalidSpecifier, SpecifierSet
 
@@ -17,6 +18,7 @@ from .cache import CacheManager
 from .exceptions import (
     BinaryNotFoundError,
     CondaExecError,
+    InvalidToolMatchSpecError,
     PyPIDependencyError,
     PythonVersionError,
 )
@@ -77,12 +79,16 @@ def execute_run(args: Namespace) -> int:
     if is_script_path(tool) and script_path.is_file():
         return execute_script(args, script_path)
 
-    name = MatchSpec(tool).name
-    channels = args.channels or DEFAULT_CHANNELS
-    specs = [tool] + (args.with_specs or [])
-    tool_args = strip_tool_separator(args)
-
     try:
+        try:
+            name = MatchSpec(tool).name
+        except InvalidMatchSpec as exc:
+            raise InvalidToolMatchSpecError(tool, str(exc)) from exc
+
+        channels = args.channels or DEFAULT_CHANNELS
+        specs = [tool] + (args.with_specs or [])
+        tool_args = strip_tool_separator(args)
+
         cache = CacheManager()
         key = cache.cache_key(name, specs, channels)
 
@@ -126,16 +132,16 @@ def execute_script(args: Namespace, script_path: Path) -> int:
     """Execute a Python script with PEP 723 inline metadata."""
     tool_args = strip_tool_separator(args)
 
-    metadata = script.parse_script_metadata(str(script_path))
-
-    has_conda_deps = metadata and metadata.conda_dependencies
-    has_pypi_deps = metadata and metadata.pypi_dependencies
-    has_cli_extras = args.with_specs or args.channels
-
-    if not has_conda_deps and not has_pypi_deps and not has_cli_extras:
-        return run_script_directly(script_path, tool_args)
-
     try:
+        metadata = script.parse_script_metadata(str(script_path))
+
+        has_metadata = metadata is not None
+        has_pypi_deps = bool(metadata and metadata.pypi_dependencies)
+        has_cli_extras = args.with_specs or args.channels
+
+        if not has_metadata and not has_cli_extras:
+            return run_script_directly(script_path, tool_args)
+
         if has_pypi_deps:
             from .pypi import is_available
 
@@ -168,11 +174,7 @@ def execute_script(args: Namespace, script_path: Path) -> int:
                 python_spec = f"python {metadata.requires_python}"
             specs.append(python_spec)
 
-        key = (
-            cache.script_cache_key(metadata)
-            if metadata
-            else cache.cache_key("script", specs, channels)
-        )
+        key = cache.cache_key("script", specs, channels)
 
         if args.refresh:
             cache.remove(key)

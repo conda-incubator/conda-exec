@@ -58,6 +58,15 @@ def test_find_binary_windows(win_prefix: Path, ext: str):
     assert result.stem == "ruff"
 
 
+def test_find_binary_windows_prefers_exe(win_prefix: Path):
+    for ext in [".cmd", ".bat", ".exe"]:
+        (win_prefix / "Scripts" / f"ruff{ext}").write_text("")
+
+    result = find_binary(win_prefix, "ruff")
+    assert result is not None
+    assert result.name == "ruff.exe"
+
+
 def test_find_python_windows_prefix_root(
     win_prefix: Path, monkeypatch: pytest.MonkeyPatch
 ):
