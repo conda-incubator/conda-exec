@@ -93,6 +93,11 @@ jobs:
           HEAD_REF: ${{ github.head_ref }}
           BASE_REF: ${{ github.base_ref }}
         run: |
+          if [ -z "$BENCHER_API_TOKEN" ]; then
+            echo "Skipping benchmark report because BENCHER_API_TOKEN is unavailable."
+            exit 0
+          fi
+
           bencher run \
             --project conda-exec \
             --token "$BENCHER_API_TOKEN" \
