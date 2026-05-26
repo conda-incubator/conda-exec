@@ -113,6 +113,12 @@ def configure_parser(parser: ArgumentParser) -> None:
         ),
     )
     parser.add_argument(
+        "--ignore-lock",
+        action="store_true",
+        default=False,
+        help="Ignore discovered script lock data and solve from script metadata.",
+    )
+    parser.add_argument(
         "--platform",
         action="append",
         default=None,

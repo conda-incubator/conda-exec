@@ -14,9 +14,9 @@ environment reproduction.
 
 ## Sidecar lockfiles by default
 
-`conda exec --lock script.py` writes a sidecar lockfile using the default
-filename published by conda's selected lockfile exporter. With the default
-`conda-lock-v1` exporter, that is `script.py.conda-lock.yml`.
+`conda exec --lock script.py` writes a sidecar lockfile using conda-exec's
+default sidecar name for the selected lockfile format. With the default
+`rattler-lock-v6` format, that is `script.py.conda-exec.lock`.
 
 Sidecar lockfiles are the default because they are visible, easy to review,
 and do not mutate source files unexpectedly. They also scale better for
@@ -42,7 +42,7 @@ default.
 When a script runs, conda-exec checks lock data before solving:
 
 1. embedded `# /// conda-exec-lock` block
-2. script-specific sidecar files derived from the exporter default filenames
+2. script-specific sidecar files for the selected lockfile format
 3. PEP 723 metadata solve
 
 Embedded data wins because a single-file artifact should be self-contained.

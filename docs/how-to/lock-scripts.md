@@ -12,11 +12,11 @@ conda exec --lock script.py
 ```
 
 conda-exec resolves the script environment, runs the script, and writes
-lock data next to the script. The default `conda-lock-v1` exporter writes:
+lock data next to the script. The default `rattler-lock-v6` format writes:
 
 ```text
 script.py
-script.py.conda-lock.yml
+script.py.conda-exec.lock
 ```
 
 Future runs discover the sidecar lockfile automatically:
@@ -31,6 +31,9 @@ the lock instead of solving from the PEP 723 metadata.
 If discovered lock data cannot be used for the current platform and the
 script still has metadata, conda-exec warns and falls back to solving from
 the metadata.
+
+Lockfiles are trusted input. Only use sidecar or embedded lock data from
+repositories and directories you trust.
 
 ## Embed lock data in the script
 
@@ -88,12 +91,19 @@ conda exec --lock --embed --refresh script.py
 
 `--refresh` without `--lock` ignores lock data and solves from metadata.
 
+Use `--ignore-lock` to ignore discovered lock data for one run:
+
+```bash
+conda exec --ignore-lock script.py
+```
+
 ## Requirements
 
 Lock support uses conda's environment exporter and specifier plugins. The
-default lock format is the `conda-lock-v1` format provided by
-`conda-lockfiles`. conda-exec derives the sidecar filename and create/export
-format from that plugin metadata.
+default lock format is the `rattler-lock-v6` format provided by
+`conda-lockfiles`. conda-exec uses a namespaced sidecar filename for the
+default format and uses conda's plugin metadata to create and export lock
+data.
 
 If your conda installation cannot read or write that format, install
 `conda-lockfiles` in the environment that provides `conda exec`.

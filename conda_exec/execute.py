@@ -131,9 +131,17 @@ def execute_script(args: Namespace, script_path: Path) -> int:
     tool_args = strip_tool_separator(args)
 
     try:
-        from .lockfile import ScriptLockManager
+        from .lockfile import LOCK_BLOCK_TYPE, ScriptLockManager
 
-        metadata = script.parse_script_metadata(str(script_path))
+        blocks = script.read_script_blocks(
+            str(script_path),
+            lock_block_type=LOCK_BLOCK_TYPE,
+        )
+        metadata = (
+            script.parse_script_metadata_block(blocks.script)
+            if blocks.script is not None
+            else None
+        )
 
         has_metadata = metadata is not None
         has_pypi_deps = bool(metadata and metadata.pypi_dependencies)
@@ -141,8 +149,17 @@ def execute_script(args: Namespace, script_path: Path) -> int:
 
         cache = CacheManager()
         locks = ScriptLockManager()
+        input_digest = locks.input_digest(metadata, args.with_specs, args.channels)
 
-        locked_rc = run_existing_lock(args, script_path, metadata, cache, locks)
+        locked_rc = run_existing_lock(
+            args,
+            script_path,
+            metadata,
+            cache,
+            locks,
+            embedded_lock_content=blocks.lock,
+            input_digest=input_digest,
+        )
         if locked_rc is not None:
             return locked_rc
 
@@ -197,7 +214,10 @@ def execute_script(args: Namespace, script_path: Path) -> int:
 
         if args.lock:
             lock_path = locks.default_sidecar_path(script_path)
-            lock_content = locks.export_content(prefix, args.lock_platforms)
+            lock_content = locks.add_input_digest(
+                locks.export_content(prefix, args.lock_platforms),
+                input_digest,
+            )
             if args.embed:
                 locks.write_embedded(script_path, lock_content)
                 lock_path = script_path
@@ -234,12 +254,25 @@ def run_existing_lock(
     metadata: script.ScriptMetadata | None,
     cache: CacheManager,
     locks: ScriptLockManager,
+    embedded_lock_content: str | None,
+    input_digest: str,
 ) -> int | None:
     """Run a script from existing lock data when that is the active fast path."""
-    if args.lock or args.refresh or args.with_specs or args.channels:
+    if (
+        args.ignore_lock
+        or args.lock
+        or args.refresh
+        or args.with_specs
+        or args.channels
+    ):
         return None
 
-    script_lock = locks.discover(script_path)
+    script_lock = locks.discover(
+        script_path,
+        embedded_content=embedded_lock_content,
+        expected_input_digest=input_digest,
+        scan_embedded=False,
+    )
     if script_lock is None:
         return None
 

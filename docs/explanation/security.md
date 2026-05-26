@@ -16,6 +16,21 @@ conda-exec trusts the conda solver and the configured package repositories. If a
 
 What conda-exec *does* control is everything that happens after packages are installed into the cache: which binary gets executed, how it is invoked, and what environment it runs in.
 
+## Script lock trust
+
+Script lockfiles are trusted input. Running a script from lock data can
+install packages into a cached prefix, and package installation may execute
+conda package hooks under the current user account.
+
+conda-exec only auto-uses generated lock data when it carries a digest that
+matches the current script dependency input. This prevents stale sidecars
+from silently overriding changed script metadata. It is not a substitute for
+trusting the lockfile itself: anyone who can modify a sidecar lockfile in a
+shared directory can also construct matching generated metadata.
+
+Use `--ignore-lock` to bypass discovered lock data for a run, and only use
+sidecar or embedded lock data from repositories and directories you trust.
+
 ## Binary discovery and symlink safety
 
 When you run `conda exec ruff`, conda-exec looks for a binary named `ruff` in the cached environment's `bin/` directory (or `Scripts/` on Windows). The critical question is: does that binary actually live inside the environment?
@@ -108,6 +123,7 @@ The isolation also means that cached environments are self-contained conda prefi
 |--------|-----------|
 | Symlink escape from prefix | `is_within_prefix()` resolves and validates binary paths |
 | Shell injection via tool name or args | `subprocess.run` with list arguments; native executables bypass shell parsing |
+| Stale script lock data | Generated input digest must match current script dependency input |
 | Path traversal via cache key | Regex validation + resolved path `is_relative_to()` check |
 | Partial environment on crash | Atomic `tempfile.mkdtemp` + `os.rename` |
 | Memory exhaustion from large scripts | 10 MB file size limit on script parsing |

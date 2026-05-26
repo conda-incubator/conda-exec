@@ -51,6 +51,9 @@ ce --clean [OPTIONS] [TOOL]
 : Embed generated lock data in the script instead of writing a sidecar
   lockfile. Requires `--lock`.
 
+`--ignore-lock`
+: Ignore discovered script lock data and solve from script metadata.
+
 `--platform SUBDIR`
 : Platform/subdir to include when writing lock data (repeatable). Examples:
   `linux-64`, `osx-arm64`, `win-64`. Only used with `--lock`.
@@ -178,9 +181,10 @@ conda exec hello.py
 ### Script lock data
 
 `conda exec --lock script.py`
-: Resolves the script environment and writes a sidecar lockfile using the
-  default filename from conda's selected lockfile exporter. With the default
-  `conda-lock-v1` exporter, this is `script.py.conda-lock.yml`.
+: Resolves the script environment and writes a sidecar lockfile using
+  conda-exec's default sidecar name for the selected lockfile format. With
+  the default `rattler-lock-v6` format, this is
+  `script.py.conda-exec.lock`.
 
 `conda exec --lock --embed script.py`
 : Resolves the script environment and writes a generated
@@ -192,6 +196,9 @@ conda exec hello.py
 
 `conda exec --refresh script.py`
 : Ignores lock data and solves from metadata.
+
+`conda exec --ignore-lock script.py`
+: Ignores discovered lock data for one run and solves from metadata.
 
 `--lock` is only supported for scripts. `--embed` requires `--lock`.
 

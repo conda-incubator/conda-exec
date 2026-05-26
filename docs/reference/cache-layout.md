@@ -30,11 +30,11 @@ Script lockfiles are stored next to scripts, not inside `~/.conda/exec/`:
 ```text
 project/
   script.py
-  script.py.conda-lock.yml
+  script.py.conda-exec.lock
 ```
 
-The exact sidecar name is derived from conda's lockfile exporter metadata.
-`script.py.conda-lock.yml` is the default for the `conda-lock-v1` exporter.
+The exact sidecar name is derived from conda-exec's selected lockfile format.
+`script.py.conda-exec.lock` is the default for the `rattler-lock-v6` format.
 
 Embedded lock data lives inside the script in a generated
 `# /// conda-exec-lock` block.

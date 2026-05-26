@@ -150,8 +150,8 @@ Use `--lock` when the resolved package versions should be recorded:
 conda exec --lock script.py
 ```
 
-With the default `conda-lock-v1` exporter, this writes
-`script.py.conda-lock.yml`. Future `conda exec script.py` runs use the lock
+With the default `rattler-lock-v6` exporter, this writes
+`script.py.conda-exec.lock`. Future `conda exec script.py` runs use the lock
 data instead of solving from metadata when possible.
 
 For single-file distribution, embed generated lock data in the script:

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import os
 import stat
 import subprocess
@@ -10,6 +12,7 @@ import tempfile
 from dataclasses import dataclass
 from functools import cached_property
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from conda.base.constants import KNOWN_SUBDIRS
 from conda.base.context import context, env_name
@@ -22,12 +25,17 @@ from conda.plugins.types import EnvironmentFormat
 from .exceptions import ScriptLockError
 from .script import extract_script_block
 
+if TYPE_CHECKING:
+    from .script import ScriptMetadata
+
 MAX_LOCK_SIZE = 10 * 1024 * 1024
-DEFAULT_LOCK_FORMAT = "conda-lock-v1"
+DEFAULT_LOCK_FORMAT = "rattler-lock-v6"
+DEFAULT_LOCK_FILENAMES = ("conda-exec.lock",)
 
 LOCK_BLOCK_TYPE = "conda-exec-lock"
 LOCK_MARKER = f"# /// {LOCK_BLOCK_TYPE}"
 LOCK_END = "# ///"
+LOCK_INPUT_DIGEST_PREFIX = "# conda-exec-lock-input-sha256: "
 
 
 @dataclass(frozen=True)
@@ -105,7 +113,7 @@ class ScriptLockManager:
     def sidecar_paths(self, script_path: Path) -> list[Path]:
         """Return supported sidecar lockfile paths for a script."""
         paths = []
-        for filename in self.lock_format.default_filenames:
+        for filename in self.default_filenames():
             paths.extend(
                 [
                     script_path.with_name(f"{script_path.name}.{filename}"),
@@ -114,37 +122,105 @@ class ScriptLockManager:
             )
         return paths
 
+    def default_filenames(self) -> tuple[str, ...]:
+        """Return expected lockfile names without plugin lookup for the default."""
+        if self.format_name == DEFAULT_LOCK_FORMAT:
+            return DEFAULT_LOCK_FILENAMES
+        return self.lock_format.default_filenames
+
     def default_sidecar_path(self, script_path: Path) -> Path:
         """Return the default sidecar lockfile path for a script."""
         return self.sidecar_paths(script_path)[0]
 
-    def discover(self, script_path: Path) -> ScriptLock | None:
+    def discover(
+        self,
+        script_path: Path,
+        *,
+        embedded_content: str | None = None,
+        expected_input_digest: str | None = None,
+        scan_embedded: bool = True,
+    ) -> ScriptLock | None:
         """Discover embedded or sidecar script lock data in precedence order."""
-        if script_path.stat().st_size <= MAX_LOCK_SIZE:
+        if (
+            scan_embedded
+            and embedded_content is None
+            and script_path.stat().st_size <= MAX_LOCK_SIZE
+        ):
             with script_path.open(encoding="utf-8") as source_file:
-                embedded = extract_script_block(
+                embedded_content = extract_script_block(
                     source_file,
                     block_type=LOCK_BLOCK_TYPE,
                     strict=False,
                 )
-            if embedded:
-                return ScriptLock(
-                    source="embedded",
-                    content=embedded,
-                    path=script_path,
-                )
+
+        if embedded_content and self.lock_matches_input(
+            embedded_content,
+            expected_input_digest,
+        ):
+            return ScriptLock(
+                source="embedded",
+                content=embedded_content,
+                path=script_path,
+            )
 
         for path in self.sidecar_paths(script_path):
             if not path.is_file():
                 continue
             if path.stat().st_size > MAX_LOCK_SIZE:
                 raise ScriptLockError(f"lockfile is too large: {path}")
-            return ScriptLock(
-                source="sidecar",
-                content=path.read_text(encoding="utf-8"),
-                path=path,
-            )
+            content = path.read_text(encoding="utf-8")
+            if self.lock_matches_input(content, expected_input_digest):
+                return ScriptLock(
+                    source="sidecar",
+                    content=content,
+                    path=path,
+                )
         return None
+
+    def input_digest(
+        self,
+        metadata: ScriptMetadata | None,
+        with_specs: list[str] | None = None,
+        channels: list[str] | None = None,
+    ) -> str:
+        """Compute the dependency input digest stored in generated locks."""
+        payload = {
+            "channels": list(channels or []),
+            "metadata": {
+                "conda_channels": list(metadata.conda_channels) if metadata else [],
+                "conda_dependencies": (
+                    sorted(metadata.conda_dependencies) if metadata else []
+                ),
+                "pypi_dependencies": sorted(metadata.pypi_dependencies)
+                if metadata
+                else [],
+                "requires_python": metadata.requires_python if metadata else None,
+            },
+            "with_specs": sorted(with_specs or []),
+        }
+        blob = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+        return hashlib.sha256(blob.encode()).hexdigest()
+
+    def add_input_digest(self, lock_content: str, input_digest: str) -> str:
+        """Prefix lock content with conda-exec input metadata."""
+        return f"{LOCK_INPUT_DIGEST_PREFIX}{input_digest}\n{lock_content.rstrip()}\n"
+
+    def read_input_digest(self, lock_content: str) -> str | None:
+        """Read the conda-exec input digest from generated lock content."""
+        for line in lock_content.splitlines()[:20]:
+            if line.startswith(LOCK_INPUT_DIGEST_PREFIX):
+                return line.removeprefix(LOCK_INPUT_DIGEST_PREFIX).strip()
+        return None
+
+    def lock_matches_input(
+        self,
+        lock_content: str,
+        expected_input_digest: str | None,
+    ) -> bool:
+        """Return whether generated lock content matches current script input."""
+        if expected_input_digest is None:
+            return True
+        return self.read_input_digest(lock_content) == expected_input_digest
 
     def write_sidecar(self, script_path: Path, lock_content: str) -> Path:
         """Write sidecar lock data using an atomic replace."""

@@ -14,6 +14,7 @@ from conda_exec.lockfile import ScriptLockManager
 from conda_exec.script import (
     ScriptMetadata,
     extract_script_block,
+    extract_script_blocks,
     parse_script_metadata,
 )
 
@@ -157,6 +158,30 @@ def test_extract_script_block_from_file_iterator():
         "import click\n",
     ]
     assert extract_script_block(lines) == 'dependencies = ["click"]'
+
+
+def test_extract_script_blocks_reads_metadata_and_lock_once():
+    text = textwrap.dedent("""\
+        # /// script
+        # [tool.conda]
+        # dependencies = ["click"]
+        # ///
+        # /// conda-exec-lock
+        # # conda-exec-lock-input-sha256: abc
+        # lock: true
+        # ///
+    """)
+
+    blocks = extract_script_blocks(
+        text,
+        block_types=("script", "conda-exec-lock"),
+        strict_block_types=("script",),
+    )
+
+    assert blocks["script"] == '[tool.conda]\ndependencies = ["click"]'
+    assert blocks["conda-exec-lock"] == (
+        "# conda-exec-lock-input-sha256: abc\nlock: true"
+    )
 
 
 @pytest.mark.parametrize(
@@ -536,9 +561,11 @@ def test_script_lock_writes_sidecar(
     rc = execute_run(args)
 
     lock_path = ScriptLockManager().default_sidecar_path(script)
+    lock_content = lock_path.read_text()
     assert rc == 0
     assert len(script_env) == 1
-    assert lock_path.read_text() == "lock: true\n"
+    assert "# conda-exec-lock-input-sha256:" in lock_content
+    assert lock_content.endswith("lock: true\n")
     assert f"Wrote lock data to {lock_path}" in capsys.readouterr().err
 
 
@@ -562,6 +589,7 @@ def test_script_lock_embeds_lock_data(
     assert rc == 0
     assert len(script_env) == 1
     assert "# /// conda-exec-lock\n" in content
+    assert "# # conda-exec-lock-input-sha256:" in content
     assert "# lock: true\n" in content
     assert f"Wrote lock data to {script}" in capsys.readouterr().err
 
@@ -603,8 +631,11 @@ def test_script_uses_embedded_lock_before_solving(
     write_script: Callable[..., Path],
     monkeypatch: pytest.MonkeyPatch,
 ):
-    script = write_script(
-        "# /// conda-exec-lock\n# embedded: true\n# ///\nprint('hello')\n"
+    manager = ScriptLockManager()
+    script = write_script("print('hello')\n")
+    manager.write_embedded(
+        script,
+        manager.add_input_digest("embedded: true\n", manager.input_digest(None)),
     )
     received: list[str] = []
 
@@ -630,7 +661,50 @@ def test_script_uses_embedded_lock_before_solving(
     rc = execute_run(args)
 
     assert rc == 0
-    assert received == ["embedded: true"]
+    assert len(received) == 1
+    assert received[0].endswith("embedded: true")
+
+
+def test_script_ignores_mismatched_lock_digest(
+    parser: ArgumentParser,
+    write_script: Callable[..., Path],
+    script_env: list[dict],
+):
+    script = write_script(SCRIPT_CONDA_ONLY)
+    manager = ScriptLockManager()
+    manager.write_sidecar(
+        script,
+        manager.add_input_digest("stale: true\n", "different"),
+    )
+
+    args = parser.parse_args([str(script)])
+    rc = execute_run(args)
+
+    assert rc == 0
+    assert len(script_env) == 1
+
+
+def test_script_ignore_lock_solves_from_metadata(
+    parser: ArgumentParser,
+    write_script: Callable[..., Path],
+    script_env: list[dict],
+):
+    script = write_script(SCRIPT_CONDA_ONLY)
+    manager = ScriptLockManager()
+    metadata = parse_script_metadata(SCRIPT_CONDA_ONLY)
+    manager.write_sidecar(
+        script,
+        manager.add_input_digest(
+            "lock: true\n",
+            manager.input_digest(metadata),
+        ),
+    )
+
+    args = parser.parse_args(["--ignore-lock", str(script)])
+    rc = execute_run(args)
+
+    assert rc == 0
+    assert len(script_env) == 1
 
 
 def test_script_falls_back_when_lock_is_unusable(
@@ -645,11 +719,13 @@ def test_script_falls_back_when_lock_is_unusable(
         "# [tool.conda]\n"
         '# dependencies = ["samtools>=1.19"]\n'
         "# ///\n"
-        "\n"
-        "# /// conda-exec-lock\n"
-        "# stale: true\n"
-        "# ///\n"
         "print('hello')\n"
+    )
+    manager = ScriptLockManager()
+    metadata = parse_script_metadata(script.read_text())
+    manager.write_embedded(
+        script,
+        manager.add_input_digest("stale: true\n", manager.input_digest(metadata)),
     )
 
     def fail_from_lock(self, key, content):

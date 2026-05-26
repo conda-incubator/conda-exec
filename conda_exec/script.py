@@ -28,6 +28,14 @@ class ScriptMetadata:
     conda_channels: tuple[str, ...] = ()
 
 
+@dataclass(frozen=True)
+class ScriptBlocks:
+    """Extracted script-adjacent metadata blocks."""
+
+    script: str | None = None
+    lock: str | None = None
+
+
 def parse_script_metadata(path_or_text: str) -> ScriptMetadata | None:
     """Extract PEP 723 inline metadata from a Python script.
 
@@ -52,6 +60,11 @@ def parse_script_metadata(path_or_text: str) -> ScriptMetadata | None:
     if toml_str is None:
         return None
 
+    return parse_script_metadata_block(toml_str)
+
+
+def parse_script_metadata_block(toml_str: str) -> ScriptMetadata:
+    """Parse PEP 723 TOML metadata content into structured metadata."""
     if sys.version_info >= (3, 11):
         import tomllib
     else:
@@ -99,6 +112,27 @@ def parse_script_metadata(path_or_text: str) -> ScriptMetadata | None:
     )
 
 
+def read_script_blocks(path: str, *, lock_block_type: str) -> ScriptBlocks:
+    """Read script metadata and lock blocks from a script file in one pass."""
+    from pathlib import Path
+
+    script_path = Path(path)
+    if script_path.stat().st_size > MAX_SCRIPT_SIZE:
+        return ScriptBlocks()
+
+    with script_path.open(encoding="utf-8") as source_file:
+        blocks = extract_script_blocks(
+            source_file,
+            block_types=("script", lock_block_type),
+            strict_block_types=("script",),
+        )
+
+    return ScriptBlocks(
+        script=blocks.get("script"),
+        lock=blocks.get(lock_block_type),
+    )
+
+
 def extract_script_block(
     source: str | Iterable[str],
     *,
@@ -114,42 +148,72 @@ def extract_script_block(
     Accepts a string (split on newlines) or any iterable of lines
     (e.g. an open file object) so large files can be read lazily.
     """
+    blocks = extract_script_blocks(
+        source,
+        block_types=(block_type,),
+        strict_block_types=(block_type,) if strict else (),
+    )
+    return blocks.get(block_type)
+
+
+def extract_script_blocks(
+    source: str | Iterable[str],
+    *,
+    block_types: Iterable[str],
+    strict_block_types: Iterable[str] = (),
+) -> dict[str, str]:
+    """Extract one or more ``# ///`` metadata block types from source."""
     if isinstance(source, str):
         lines: Iterable[str] = source.splitlines()
     else:
         lines = (line.rstrip("\r\n") for line in source)
 
+    wanted = set(block_types)
+    strict = set(strict_block_types)
+    results: dict[str, str] = {}
+
     collecting = False
+    current_type: str | None = None
+    current_invalid = False
     toml_lines: list[str] = []
 
     for line in lines:
         if not collecting:
             match = SCRIPT_MARKER_RE.match(line)
-            if match and match.group("type") == block_type:
+            if match and match.group("type") in wanted:
                 collecting = True
+                current_type = match.group("type")
+                current_invalid = False
+                toml_lines = []
             continue
 
         if SCRIPT_END_RE.match(line):
-            return "\n".join(toml_lines)
+            if current_type is not None and not current_invalid:
+                results.setdefault(current_type, "\n".join(toml_lines))
+            collecting = False
+            current_type = None
+            current_invalid = False
+            toml_lines = []
+            continue
 
         if line.startswith("# "):
             toml_lines.append(line[2:])
         elif line == "#":
             toml_lines.append("")
         else:
-            if strict:
+            if current_type in strict:
                 raise ScriptMetadataError(
                     "metadata block lines must start with '# ' or be '#'"
                 )
-            return None
+            current_invalid = True
 
     if collecting:
-        if strict:
-            raise ScriptMetadataError(f"unclosed '# /// {block_type}' block")
+        current_label = current_type or "unknown"
+        if current_type in strict:
+            raise ScriptMetadataError(f"unclosed '# /// {current_label}' block")
         print(
-            f"conda exec: warning: unclosed '# /// {block_type}' block",
+            f"conda exec: warning: unclosed '# /// {current_label}' block",
             file=sys.stderr,
         )
-        return None
 
-    return None
+    return results

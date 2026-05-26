@@ -12,6 +12,7 @@ from conda.plugins.types import EnvironmentFormat
 
 from conda_exec import lockfile
 from conda_exec.exceptions import ScriptLockError
+from conda_exec.script import ScriptMetadata
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -20,16 +21,11 @@ if TYPE_CHECKING:
 def test_sidecar_lock_paths(tmp_path: Path):
     manager = lockfile.ScriptLockManager()
     script = tmp_path / "analysis.py"
-    expected = []
-    for filename in manager.lock_format.default_filenames:
-        expected.extend(
-            [
-                tmp_path / f"analysis.py.{filename}",
-                tmp_path / f"analysis.{filename}",
-            ]
-        )
 
-    assert manager.sidecar_paths(script) == expected
+    assert manager.sidecar_paths(script) == [
+        tmp_path / "analysis.py.conda-exec.lock",
+        tmp_path / "analysis.conda-exec.lock",
+    ]
 
 
 def test_discover_prefers_embedded_lock(tmp_path: Path):
@@ -58,6 +54,40 @@ def test_discover_sidecar_lock(tmp_path: Path):
     assert script_lock is not None
     assert script_lock.source == "sidecar"
     assert script_lock.content == "sidecar: true\n"
+
+
+def test_discover_requires_matching_input_digest(tmp_path: Path):
+    manager = lockfile.ScriptLockManager()
+    script = tmp_path / "analysis.py"
+    script.write_text("print('hello')\n")
+    digest = manager.input_digest(None)
+    manager.default_sidecar_path(script).write_text(
+        manager.add_input_digest("sidecar: true\n", digest)
+    )
+
+    matching_lock = manager.discover(script, expected_input_digest=digest)
+    mismatched_lock = manager.discover(script, expected_input_digest="different")
+
+    assert matching_lock is not None
+    assert matching_lock.source == "sidecar"
+    assert mismatched_lock is None
+
+
+def test_input_digest_preserves_channel_order():
+    manager = lockfile.ScriptLockManager()
+    first = ScriptMetadata(
+        conda_dependencies=("python",),
+        conda_channels=("conda-forge", "bioconda"),
+    )
+    second = ScriptMetadata(
+        conda_dependencies=("python",),
+        conda_channels=("bioconda", "conda-forge"),
+    )
+
+    assert manager.input_digest(first) != manager.input_digest(second)
+    assert manager.input_digest(None, channels=["defaults", "conda-forge"]) != (
+        manager.input_digest(None, channels=["conda-forge", "defaults"])
+    )
 
 
 def test_write_sidecar_lock(tmp_path: Path):
@@ -122,17 +152,17 @@ def test_export_lock_content_uses_conda_exporter_api(
             return f"env:{platform}"
 
     exporter = SimpleNamespace(
-        name="conda-lock-v1",
-        aliases=("conda-lock",),
-        default_filenames=("conda-lock.yml",),
+        name="rattler-lock-v6",
+        aliases=("pixi", "pixi-lock-v6"),
+        default_filenames=("pixi.lock",),
         multiplatform_export=lambda envs: "\n".join(envs),
         export=None,
         environment_format=EnvironmentFormat.lockfile,
     )
     specifier = SimpleNamespace(
-        name="conda-lock-v1",
-        aliases=("conda-lock",),
-        default_filenames=("conda-lock.yml",),
+        name="rattler-lock-v6",
+        aliases=("pixi", "pixi-lock-v6"),
+        default_filenames=("pixi.lock",),
         environment_format=EnvironmentFormat.lockfile,
     )
 
@@ -145,7 +175,7 @@ def test_export_lock_content_uses_conda_exporter_api(
     monkeypatch.setattr(
         lockfile.context.plugin_manager,
         "get_environment_specifiers",
-        lambda: {"conda-lock-v1": specifier},
+        lambda: {"rattler-lock-v6": specifier},
     )
 
     content = lockfile.ScriptLockManager().export_content(

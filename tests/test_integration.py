@@ -178,7 +178,7 @@ def test_script_lock_sidecar_reuse(
     )
 
     _, err1, code1 = conda_cli("exec", "--lock", str(script))
-    lock_path = script.with_name(f"{script.name}.conda-lock.yml")
+    lock_path = script.with_name(f"{script.name}.conda-exec.lock")
 
     assert code1 == 0
     assert "Wrote lock data to" in err1
