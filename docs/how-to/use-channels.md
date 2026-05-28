@@ -1,7 +1,9 @@
 # Use custom channels
 
 By default, conda-exec searches `conda-forge` for packages. You can specify
-alternative or additional channels from the CLI or inside script metadata.
+alternative or additional
+[conda channels](https://docs.conda.io/projects/conda/en/stable/user-guide/concepts/channels.html)
+from the CLI or inside script metadata.
 
 ## Specify a channel from the CLI
 
@@ -13,7 +15,9 @@ conda exec -c bioconda samtools view input.bam
 
 ## Use multiple channels
 
-Repeat `-c` to add multiple channels. They are searched in the order given:
+Repeat `-c` to add multiple channels. They are searched in the order given,
+subject to conda's configured
+[channel priority](https://docs.conda.io/projects/conda/en/stable/user-guide/tasks/manage-channels.html#strict-channel-priority):
 
 ```bash
 conda exec -c bioconda -c defaults samtools view input.bam
@@ -89,3 +93,8 @@ same tool with different `-c` flags creates separate cached environments:
 conda exec ruff check .                 # cached as ruff--<hash1>
 conda exec -c defaults ruff check .     # cached as ruff--<hash2>
 ```
+
+The cache key treats channel order as the same channel set. On a cache miss,
+the order you pass is used for the solve. If you change only the order of
+the same channels and need conda to solve again with that order, use
+`--refresh`.

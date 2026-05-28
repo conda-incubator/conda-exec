@@ -6,8 +6,8 @@ Environment variables that conda-exec reads, sets, or respects during operation.
 
 `CONDA_EXEC_HOME`
 : Override the base data directory for cached environments.
-  Default: `~/.conda/exec/`. Must be an absolute path (or a path starting
-  with `~`, which is expanded). When set, all cached environments are
+  Default: `~/.conda/exec/`. The value is expanded with `~` support and
+  resolved to an absolute path. When set, all cached environments are
   stored under `$CONDA_EXEC_HOME/envs/` instead of `~/.conda/exec/envs/`.
   Useful for testing or placing the cache on a different filesystem.
 
@@ -46,7 +46,8 @@ Environment variables that conda-exec reads, sets, or respects during operation.
 ## conda plugin settings
 
 Automatic cleanup can also be configured persistently through conda's
-plugin configuration in `.condarc`:
+plugin configuration in
+[`.condarc`](https://docs.conda.io/projects/conda/en/stable/user-guide/configuration/use-condarc.html):
 
 ```yaml
 plugins:
@@ -81,8 +82,9 @@ example `CONDA_PLUGINS_CONDA_EXEC_AUTO_CLEAN=false`.
 ## Standard conda variables
 
 conda-exec runs within conda's plugin framework and inherits conda's
-context system. The following standard conda environment variables are
-respected through `conda.base.context`:
+[context system](https://docs.conda.io/projects/conda/en/stable/dev-guide/deep-dives/context.html).
+The following standard conda environment variables are respected through
+{py:data}`conda.base.context.context`:
 
 `CONDA_ALWAYS_YES`
 : When set to `true`, skip confirmation prompts (equivalent to
@@ -92,13 +94,15 @@ respected through `conda.base.context`:
 : When set to `true`, report what would be done without making
   changes. Applies to `conda exec --clean`.
 
-`CONDA_JSON`
-: When set to `true`, produce JSON output. Applies to
-  `conda exec --list`.
-
 `CONDA_SUBDIR`
 : Override the platform subdirectory used for package resolution
   (e.g. `linux-64`, `osx-arm64`). Passed through to the solver.
+
+```{note}
+Use `conda exec --list --json` for conda-exec's machine-readable cache
+listing. The list command is not currently controlled by conda's global
+`CONDA_JSON` setting.
+```
 
 ## Path resolution order
 

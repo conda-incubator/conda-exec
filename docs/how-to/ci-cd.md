@@ -1,14 +1,14 @@
 # Use in CI/CD pipelines
 
-conda-exec lets CI jobs run tools from conda packages without permanent
-installation, keeping the CI environment clean.
+conda-exec lets CI jobs run tools from conda packages without adding those
+tools to the project environment.
 
 ## Install conda-exec
 
 Install conda-exec and its solver dependency into the base environment:
 
 ```bash
-conda install -n base conda-exec conda-rattler-solver
+conda install -n base -c conda-forge conda-exec conda-rattler-solver
 ```
 
 The standalone `ce` command is also available after installation:
@@ -46,9 +46,8 @@ and work in CI without extra flags.
 ## Cache persistence
 
 ```{tip}
-Caching the conda-exec environment directory between CI runs can cut tool
-startup time from seconds to near zero. The first run pays the cost of
-solving and downloading; every run after that reuses the cached result.
+Caching the conda-exec environment directory between CI runs avoids solving
+and downloading the same tool environment repeatedly.
 ```
 
 conda-exec stores cached environments in `~/.conda/exec/envs/`. To speed
@@ -85,9 +84,8 @@ cp -a ~/.conda/exec/envs /cache/conda-exec-envs
 :::
 ::::
 
-With caching enabled, only the first CI run resolves and downloads
-packages. Subsequent runs reuse the cached environments and start
-instantly.
+With caching enabled, only the first CI run for a given cache key resolves
+and downloads packages. Later runs reuse the cached environments.
 
 ## Example: GitHub Actions workflow
 
@@ -109,7 +107,7 @@ jobs:
           auto-activate-base: true
 
       - name: Install conda-exec
-        run: conda install -n base -y conda-exec conda-rattler-solver
+        run: conda install -n base -c conda-forge -y conda-exec conda-rattler-solver
 
       - uses: actions/cache@v4
         with:

@@ -51,7 +51,7 @@ conda-exec adds the `conda-pypi` channel automatically.
 Install conda-pypi if you haven't already:
 
 ```bash
-conda install -n base conda-pypi
+conda install -n base -c conda-forge conda-pypi
 ```
 
 ## Mixed conda and PyPI dependencies
@@ -69,9 +69,9 @@ Combine both in a single script:
 # ///
 ```
 
-Both conda and PyPI packages are resolved together in a single environment
-solve. The `conda-pypi` channel converts PyPI wheels into conda packages,
-so the rattler solver handles everything in one pass.
+Both conda and PyPI requirements are included in one environment solve.
+`conda-pypi` exposes PyPI packages through a conda channel so the solver can
+handle the combined dependency set.
 
 ## Pin the Python version
 
@@ -88,14 +88,15 @@ This adds a `python >=3.12` spec to the environment solve.
 
 ## Add extra dependencies from the CLI
 
-Override or extend a script's dependencies from the command line:
+Add dependencies and channels for one run from the command line:
 
 ```bash
 conda exec --with numpy -c defaults script.py
 ```
 
 CLI extras (`--with` and `-c`) are merged with the script's declared
-dependencies.
+dependency input. They create a separate cache entry and bypass discovered
+lock data for that run.
 
 ## Scripts without metadata
 

@@ -1,6 +1,8 @@
 # Security model
 
-conda-exec runs arbitrary binaries from automatically created environments. This is inherently a trust decision, and the security model is designed to be transparent about what is and is not protected.
+conda-exec runs binaries from environments it creates from conda packages.
+That is a trust decision. This page describes what conda-exec checks and
+what it delegates to conda.
 
 ## Trust boundaries
 
@@ -12,9 +14,15 @@ careful when adding third-party channels via `--channel` or
 `[tool.conda].channels` in script metadata.
 ```
 
-conda-exec trusts the conda solver and the configured package repositories. If a user runs `conda exec ruff`, they are trusting that the `ruff` package from their configured channels (typically conda-forge) contains what it claims. conda-exec does not add verification beyond what conda itself provides. Channel trust, package signatures, and repository integrity are all delegated to conda's own security model.
+conda-exec trusts the conda solver and the configured package repositories.
+If a user runs `conda exec ruff`, they are trusting that the `ruff` package
+from the selected channels contains what it claims. conda-exec does not add
+verification beyond what conda itself provides. Channel trust, package
+signatures, and repository integrity are delegated to conda.
 
-What conda-exec *does* control is everything that happens after packages are installed into the cache: which binary gets executed, how it is invoked, and what environment it runs in.
+What conda-exec controls is the path after package installation: which
+binary is selected, how it is invoked, and what environment variables are
+passed to it.
 
 ## Script lock trust
 
@@ -33,9 +41,14 @@ sidecar or embedded lock data from repositories and directories you trust.
 
 ## Binary discovery and symlink safety
 
-When you run `conda exec ruff`, conda-exec looks for a binary named `ruff` in the cached environment's `bin/` directory (or `Scripts/` on Windows). The critical question is: does that binary actually live inside the environment?
+When you run `conda exec ruff`, conda-exec looks for a binary named `ruff`
+in the cached environment's `bin/` directory (or `Scripts/` on Windows).
+The critical question is whether that binary resolves inside the
+environment.
 
-A malicious or misconfigured package could install a symlink that points outside the prefix. For example, a binary at `prefix/bin/ruff` could be a symlink to `/usr/bin/something-dangerous`. Without validation, conda-exec would happily execute whatever the symlink points to.
+A malicious or misconfigured package could install a symlink that points
+outside the prefix. For example, `prefix/bin/ruff` could point to a program
+under `/usr/bin`. conda-exec validates the resolved path before running it.
 
 The `find_binary()` function prevents this. After locating a candidate binary, it resolves the full path through any symlinks and checks that the resolved path is still within the environment prefix using `is_within_prefix()`:
 
@@ -49,7 +62,8 @@ def is_within_prefix(path: Path, resolved_prefix: Path) -> bool:
 
 If the resolved binary escapes the prefix, `find_binary()` returns `None` and the tool invocation fails with a "command not found" error rather than executing an unexpected binary. Errors during resolution (broken symlinks, permission issues) are also treated as failures, defaulting to the safe outcome.
 
-The prefix itself is resolved once by the caller and passed in, so the comparison is always between two fully resolved paths. This avoids TOCTOU (time-of-check-time-of-use) issues where the prefix path might be interpreted differently at check time versus use time.
+The prefix is resolved before comparison, so the check is between resolved
+paths rather than textual path fragments.
 
 ## Subprocess execution
 

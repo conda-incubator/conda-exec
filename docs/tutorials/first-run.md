@@ -6,7 +6,7 @@ This tutorial walks through running a tool with conda-exec for the first time.
 
 - conda 25.1 or later
 - conda-rattler-solver installed
-- conda-exec installed (`conda install conda-exec`)
+- conda-exec installed (`conda install -c conda-forge conda-exec conda-rattler-solver`)
 
 ## Step 1: Run a tool
 
@@ -48,7 +48,8 @@ conda-exec:
 conda exec ruff check .
 ```
 
-This time it starts instantly with no progress message because the cached environment already exists.
+This time there is no creation message because the cached environment
+already exists.
 
 ## Step 3: Try the standalone alias
 

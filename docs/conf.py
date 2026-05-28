@@ -13,6 +13,7 @@ extensions = [
     "myst_parser",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
+    "sphinx.ext.intersphinx",
     "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
     "sphinx_copybutton",
@@ -52,3 +53,10 @@ html_static_path = ["_static"]
 html_css_files = ["css/custom.css"]
 
 html_baseurl = "https://jezdez.github.io/conda-exec/"
+
+intersphinx_mapping = {
+    "conda": ("https://docs.conda.io/projects/conda/en/stable/", None),
+    "python": ("https://docs.python.org/3/", None),
+    "packaging": ("https://packaging.pypa.io/en/stable/", None),
+    "sphinx": ("https://www.sphinx-doc.org/en/master/", None),
+}

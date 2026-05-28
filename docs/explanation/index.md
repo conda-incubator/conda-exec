@@ -16,6 +16,20 @@ Background and design decisions.
 How conda-exec works under the hood.
 :::
 
+:::{grid-item-card} {octicon}`gear` Ecosystem fit
+:link: ecosystem-fit
+:link-type: doc
+
+How conda-exec fits alongside conda run, named environments, and tool runners.
+:::
+
+:::{grid-item-card} {octicon}`package` Dependency resolution
+:link: dependency-resolution
+:link-type: doc
+
+How tool specs, script metadata, PyPI dependencies, channels, and locks solve.
+:::
+
 :::{grid-item-card} {octicon}`database` Caching
 :link: caching
 :link-type: doc

@@ -16,11 +16,32 @@ Task-oriented guides for specific use cases.
 Run Python scripts with inline dependency metadata.
 :::
 
+:::{grid-item-card} {octicon}`tools` Run command-line tools
+:link: run-tools
+:link-type: doc
+
+Run conda-packaged commands without permanent installs.
+:::
+
+:::{grid-item-card} {octicon}`package` Use PyPI dependencies
+:link: use-pypi-dependencies
+:link-type: doc
+
+Resolve PEP 723 PyPI dependencies through conda-pypi.
+:::
+
 :::{grid-item-card} {octicon}`database` Manage cache
 :link: manage-cache
 :link-type: doc
 
 Control the conda-exec package cache.
+:::
+
+:::{grid-item-card} {octicon}`database` Configure cleanup
+:link: configure-cleanup
+:link-type: doc
+
+Tune automatic cache cleanup for workstations and CI runners.
 :::
 
 :::{grid-item-card} {octicon}`lock` Lock scripts

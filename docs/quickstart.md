@@ -3,14 +3,17 @@
 ## Installation
 
 ```bash
-conda install conda-exec
+conda install -c conda-forge conda-exec conda-rattler-solver
 ```
 
-conda-exec requires `conda-rattler-solver` for fast environment creation.
+Install `conda-pypi` as well if you want scripts with top-level PEP 723
+`dependencies` from PyPI, and `conda-lockfiles` if you want script lock
+support.
 
 ## Basic usage
 
-Run any conda package without installing it:
+Run a command from a conda package without installing it into your current
+environment:
 
 ::::{tab-set}
 :::{tab-item} conda exec
@@ -29,7 +32,15 @@ ce ruff check .
 :::
 ::::
 
-The first invocation creates a cached environment. Subsequent runs reuse the cache and start instantly.
+The first invocation creates a cached environment. Later runs reuse that
+environment and skip the solve/download step.
+
+:::{image} ../demos/quickstart.gif
+:alt: conda-exec quickstart demo showing a first tool run, cache reuse, the ce alias, and cache listing
+:width: 100%
+:::
+
+For more command-line patterns, see [Run command-line tools](how-to/run-tools.md).
 
 ## Version constraints
 
@@ -90,3 +101,18 @@ Scripts with PyPI `dependencies` require [conda-pypi](https://github.com/conda/c
 ```
 
 Scripts without metadata run directly with the current Python.
+
+## Lock script environments
+
+Generate lock data when a script should be repeatable across machines or
+after cache cleanup:
+
+```bash
+conda exec --lock script.py
+```
+
+This writes sidecar lock data next to the script. Future normal runs use
+the lock data when it matches the script's dependency metadata.
+
+For the step-by-step workflow, see
+[Share a locked script](tutorials/share-locked-script.md).

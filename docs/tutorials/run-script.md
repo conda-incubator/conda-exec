@@ -11,15 +11,15 @@ metadata.
 
 - conda 25.1 or later
 - conda-rattler-solver installed
-- conda-exec installed (`conda install conda-exec`)
+- conda-exec installed (`conda install -c conda-forge conda-exec conda-rattler-solver`)
 
 :::
 :::{tab-item} PyPI or mixed scripts
 
 - conda 25.1 or later
 - conda-rattler-solver installed
-- conda-exec installed (`conda install conda-exec`)
-- conda-pypi installed (`conda install conda-pypi`)
+- conda-exec installed (`conda install -c conda-forge conda-exec conda-rattler-solver`)
+- conda-pypi installed (`conda install -c conda-forge conda-pypi`)
 
 :::
 ::::
@@ -60,7 +60,13 @@ Creating environment for script... done (4.1s)
 Hello from a conda-exec script!
 ```
 
-Subsequent runs reuse the cached environment and start instantly.
+Later runs reuse the cached environment when the dependency metadata has
+not changed.
+
+:::{image} ../../demos/script-dependencies.gif
+:alt: Demo showing conda-exec running a Python script with PEP 723 conda dependencies
+:width: 100%
+:::
 
 ## Step 3: Add PyPI dependencies
 
@@ -70,7 +76,7 @@ packages. These are resolved through the
 which requires conda-pypi to be installed.
 
 ```{warning}
-PyPI dependencies require [conda-pypi](https://github.com/conda/conda-pypi) to be installed. Without it, conda-exec cannot resolve packages from PyPI. Install it with `conda install conda-pypi`.
+PyPI dependencies require [conda-pypi](https://github.com/conda/conda-pypi) to be installed. Without it, conda-exec cannot resolve packages from PyPI. Install it with `conda install -c conda-forge conda-pypi`.
 ```
 
 Create a file called `fetch.py`:
@@ -96,7 +102,7 @@ dependencies are declared.
 
 ## Step 4: Mix conda and PyPI dependencies
 
-The real power comes from combining both in a single script:
+You can combine both dependency sources in one script:
 
 ```python
 # /// script
@@ -171,3 +177,8 @@ cached environment.
 ```{note}
 Two scripts with identical dependency metadata share the same cached environment, even if they live in different directories or have different filenames. The cache key depends only on the declared dependencies, channels, and Python version constraint.
 ```
+
+## Next steps
+
+If this script needs to run repeatably in CI or on another machine, continue
+with [Share a locked script](share-locked-script.md).

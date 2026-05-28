@@ -19,7 +19,7 @@ If it is installed but still not found, check that `conda-rattler-solver`
 is also installed. conda-exec requires it:
 
 ```bash
-conda install -n base conda-rattler-solver
+conda install -n base -c conda-forge conda-rattler-solver
 ```
 
 The standalone `ce` command should work independently of the plugin system.
@@ -27,7 +27,7 @@ If `conda exec` fails but `ce` works, the plugin entry point is not being
 discovered. Reinstalling conda-exec usually fixes this:
 
 ```bash
-conda install -n base --force-reinstall conda-exec
+conda install -n base -c conda-forge --force-reinstall conda-exec
 ```
 
 ## "solver not available" error
@@ -39,7 +39,29 @@ conda exec: conda-rattler-solver is required but not installed
 Install the solver backend:
 
 ```bash
-conda install -n base conda-rattler-solver
+conda install -n base -c conda-forge conda-rattler-solver
+```
+
+## "invalid match spec" error
+
+```text
+conda exec: invalid match spec for tool '<spec>': <detail>
+```
+
+The tool argument is parsed as a conda match spec. Common causes are
+unquoted shell characters or invalid conda spec syntax.
+
+Quote version constraints:
+
+```bash
+conda exec "ruff>=0.4,<0.5" check .
+```
+
+Use `--with` for extra packages instead of appending them to the tool
+argument:
+
+```bash
+conda exec --with pytest ruff check tests/
 ```
 
 ## "binary not found" error
@@ -64,6 +86,10 @@ Check the package contents to find the correct binary name:
 conda search --info foo
 ```
 
+conda-exec does not currently support installing package `foo` while
+running executable `bar` in tool mode. Use a script or a named environment
+for that package layout.
+
 ## "conda-pypi required" error
 
 ```text
@@ -74,7 +100,7 @@ Your script has a top-level `dependencies` field (PyPI packages) in its
 PEP 723 metadata, but conda-pypi is not available. Install it:
 
 ```bash
-conda install -n base conda-pypi
+conda install -n base -c conda-forge conda-pypi
 ```
 
 Alternatively, move your dependencies to `[tool.conda].dependencies` if
@@ -88,8 +114,8 @@ The first invocation of a tool is slow because conda-exec must:
 2. Download packages
 3. Extract and install them into the cached environment
 
-Subsequent runs reuse the cache and start instantly. To see existing
-cached environments:
+Later runs reuse the cache when the dependency input is unchanged. To see
+existing cached environments:
 
 ```bash
 conda exec --list
@@ -149,4 +175,26 @@ If the problem persists, clean the cache entirely:
 ```bash
 conda exec --clean --all --yes
 conda exec ruff check .
+```
+
+## Stale or unusable script lock data
+
+```text
+conda exec: warning: ignoring unusable sidecar lock data: script lock error: <detail>
+```
+
+The lockfile was discovered, but conda could not create an environment from
+it. If the script still has metadata, conda-exec falls back to solving from
+the metadata.
+
+Refresh the lock:
+
+```bash
+conda exec --lock --refresh script.py
+```
+
+Or bypass the lock for one run:
+
+```bash
+conda exec --ignore-lock script.py
 ```

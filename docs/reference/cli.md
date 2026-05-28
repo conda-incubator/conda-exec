@@ -45,7 +45,7 @@ ce --clean [OPTIONS] [TOOL]
 : Force re-creation of the cached environment.
 
 `--lock`
-: Write or use lock data for a script environment. Script-only.
+: Generate lock data for a script environment. Script-only.
 
 `--embed`
 : Embed generated lock data in the script instead of writing a sidecar
@@ -68,6 +68,9 @@ ce --clean [OPTIONS] [TOOL]
 
 `TOOL`
 : Package to run, as a name or full match spec (e.g. `ruff` or `ruff>=0.4`). The binary name is extracted from the match spec automatically. If the argument is a path to an existing file, conda-exec runs it as a Python script instead (see [Script mode](#script-mode) below).
+
+  See [Package specs](package-specs.md) for accepted match spec forms,
+  quoting rules, channel behavior, and cache identity.
 
 `TOOL_ARGS`
 : Arguments passed through to the tool or script. Use `--` to separate conda-exec options from tool options.
@@ -192,7 +195,7 @@ conda exec hello.py
 
 `conda exec script.py`
 : Uses embedded lock data first, then a sidecar lockfile, then falls back to
-  solving from PEP 723 metadata.
+  solving from PEP 723 metadata when no matching lock data is available.
 
 `conda exec --refresh script.py`
 : Ignores lock data and solves from metadata.
@@ -201,6 +204,9 @@ conda exec hello.py
 : Ignores discovered lock data for one run and solves from metadata.
 
 `--lock` is only supported for scripts. `--embed` requires `--lock`.
+
+See [Script lock reference](script-locks.md) for sidecar discovery names,
+embedded block syntax, digest matching, and lock cache keys.
 
 ## conda exec --list
 
@@ -216,6 +222,8 @@ conda exec --list [--json]
 ```bash
 conda exec --list
 ```
+
+See [Cache list JSON](list-json.md) for the exact JSON fields.
 
 ```text
 Tool        Size     Last used         Packages

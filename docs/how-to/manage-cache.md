@@ -1,6 +1,7 @@
 # Manage the cache
 
-conda-exec caches environments for fast re-use. Over time, these caches can accumulate.
+conda-exec caches environments for reuse. Over time, these caches can
+accumulate.
 
 ```{tip}
 Run `conda exec --list` periodically to see how much disk space cached
@@ -15,6 +16,20 @@ conda exec --list
 ```
 
 Shows all cached environments with their size, last-used timestamp, and package count.
+
+For machine-readable output, add `--json`:
+
+```bash
+conda exec --list --json
+```
+
+See [Cache list JSON](../reference/list-json.md) for the output schema and
+empty-cache behavior.
+
+:::{image} ../../demos/cache-management.gif
+:alt: Demo showing conda-exec cache listing, JSON output, dry-run cleanup, and cache cleanup
+:width: 100%
+:::
 
 ## Clean old caches
 
@@ -71,6 +86,9 @@ plugins:
   conda_exec_clean_age: 30
 ```
 
+See [Configure automatic cleanup](configure-cleanup.md) for workstation,
+CI, and scratch-directory examples.
+
 ## Force re-creation
 
 ```{note}
@@ -83,3 +101,6 @@ If a cached environment is stale or broken, force re-creation:
 ```bash
 conda exec --refresh ruff check .
 ```
+
+For script lock data, `--refresh` also bypasses discovered locks and solves
+from the script metadata for that run.

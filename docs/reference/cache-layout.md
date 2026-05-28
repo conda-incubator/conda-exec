@@ -1,6 +1,6 @@
 # Cache layout
 
-conda-exec stores cached environments under a platform-specific data directory.
+conda-exec stores cached environments under its base data directory.
 
 ## Directory structure
 
@@ -11,7 +11,6 @@ conda-exec stores cached environments under a platform-specific data directory.
     ruff--a3f8b2c1/           # cached env for bare `conda exec ruff`
       conda-meta/
         history               # mtime used for staleness tracking
-        created_at            # creation timestamp
         *.json                # package records
       bin/                    # (Unix) or Scripts/ (Windows)
         ruff
@@ -35,6 +34,7 @@ project/
 
 The exact sidecar name is derived from conda-exec's selected lockfile format.
 `script.py.conda-exec.lock` is the default for the `rattler-lock-v6` format.
+conda-exec also discovers `script.conda-exec.lock` for that default format.
 
 Embedded lock data lives inside the script in a generated
 `# /// conda-exec-lock` block.
@@ -87,12 +87,18 @@ conda exec ruff check .
 
 ## Staleness tracking
 
-conda-exec uses conda's own `PrefixData` API for staleness tracking:
+conda-exec uses conda's own
+{py:class}`~conda.core.prefix_data.PrefixData` API when it reports cache
+metadata:
 
-- `conda-meta/created_at`: records when the environment was created
-- `conda-meta/history` mtime: updated on each `conda exec` invocation
+- `PrefixData.created`: creation timestamp when conda can determine one
+- `PrefixData.last_modified`: derived from prefix metadata, including
+  `conda-meta/history`
 
-The `conda exec --clean` command reads `PrefixData.last_modified` to determine which environments are stale.
+The `conda exec --clean` command reads
+{py:attr}`~conda.core.prefix_data.PrefixData.last_modified` to determine
+which environments are stale. conda-exec updates `conda-meta/history` on
+cache hits with a one-hour debounce.
 
 Automatic cleanup uses the same staleness data. It stores a best-effort
 invocation counter in `~/.conda/exec/run-count` and checks for stale

@@ -5,7 +5,7 @@ conda's match spec syntax.
 
 ## Bare package name
 
-With no constraint, the solver picks the latest version available:
+With no constraint, the solver chooses a compatible available version:
 
 ```bash
 conda exec ruff check .

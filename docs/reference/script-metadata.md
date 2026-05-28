@@ -182,6 +182,11 @@ When running a script, conda-exec checks embedded lock data before sibling
 sidecar lockfiles. If lock data is present, the cached environment key is
 derived from the lock content instead of the metadata block.
 
+Generated lock data includes an input digest. conda-exec only uses it
+automatically when the digest matches the current dependency input. See
+[Script lock reference](script-locks.md) for the exact discovery and
+invalidation rules.
+
 ## Examples
 
 ### Conda dependencies only
@@ -265,8 +270,8 @@ metadata support. A script using only these fields works with both
 
 The `[tool.conda]` extension fields are ignored by uv (and other
 PEP 723 consumers), so scripts that include conda-specific
-configuration remain valid for other tools. They will simply not
-install the conda-specific dependencies.
+configuration remain valid for other tools. Those tools will not install
+the conda-specific dependencies.
 
 ```{tip}
 You can write scripts that work with both conda-exec and uv. Put

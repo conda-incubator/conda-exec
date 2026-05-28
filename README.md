@@ -7,22 +7,28 @@
 [![Benchmarks](https://img.shields.io/badge/benchmarks-bencher.dev-blue)](https://bencher.dev/perf/conda-exec)
 [![zizmor](https://img.shields.io/badge/%F0%9F%8C%88-zizmor-white?labelColor=white)](https://github.com/jezdez/conda-exec/actions/workflows/zizmor.yml)
 
-Ephemeral package execution for conda. Run any conda package without installing it permanently.
+Ephemeral package execution for conda. Run commands from conda packages
+without installing them permanently.
 
 ```bash
 conda exec ruff check .
 ce ruff check .
 ```
 
-conda-exec creates a cached, isolated environment for the tool, runs it, and exits. The environment is cached for fast re-use but is not on PATH and is fully disposable. Think `npx` for Node or `uvx` for Python, but for conda packages.
+conda-exec creates a cached, isolated environment for the tool, runs it,
+and exits. The environment is reused on later runs but is not added to
+`PATH` permanently.
+
+![conda-exec quickstart demo](demos/quickstart.gif)
 
 ## Installation
 
 ```bash
-conda install conda-exec
+conda install -c conda-forge conda-exec conda-rattler-solver
 ```
 
-Requires `conda-rattler-solver` for fast environment creation.
+Install `conda-pypi` for scripts with PyPI dependencies, and
+`conda-lockfiles` for script lock support.
 
 ## Usage
 
@@ -43,6 +49,9 @@ conda exec -c bioconda samtools view file.bam
 
 # Run a script with inline dependencies (PEP 723)
 conda exec script.py
+
+# Record a repeatable script environment
+conda exec --lock script.py
 
 # Force re-creation of cached environment
 conda exec --refresh ruff check .

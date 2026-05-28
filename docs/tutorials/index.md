@@ -23,4 +23,11 @@ Get started with conda-exec by running your first command.
 Run a Python script with inline dependency metadata.
 :::
 
+:::{grid-item-card} {octicon}`lock` Share a locked script
+:link: share-locked-script
+:link-type: doc
+
+Generate sidecar and embedded lock data for a repeatable script.
+:::
+
 ::::

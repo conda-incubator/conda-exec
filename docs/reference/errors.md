@@ -38,6 +38,21 @@ which typically lists conflicting constraints. Common causes include
 version specs that no package satisfies, or conflicting requirements
 between `--with` specs.
 
+### InvalidToolMatchSpecError
+
+Raised when the positional tool argument is not a valid conda match spec.
+
+```text
+conda exec: invalid match spec for tool '<spec>': <detail>
+```
+
+Quote shell-sensitive version constraints and use conda match spec syntax.
+For example:
+
+```bash
+conda exec "ruff>=0.4,<0.5" check .
+```
+
 ### SolverNotAvailableError
 
 Raised when no solver backend is available.
@@ -95,6 +110,17 @@ conda exec: script lock error: <detail>
 Common causes include missing support for conda's registered lockfile
 exporter/specifier plugins, lock data larger than the supported size limit,
 or using `--lock` on a script without metadata or `--with` specs.
+
+### Script metadata parse error
+
+Raised when a `# /// script` block is malformed, unclosed, or contains
+invalid TOML.
+
+```text
+conda exec: invalid inline script metadata: <detail>
+```
+
+For invalid TOML, `<detail>` starts with `failed to parse TOML:`.
 
 ## Execution errors
 
@@ -162,19 +188,14 @@ conda exec: warning: --json is only used with --list
 conda exec: warning: --dry-run is only used with --clean
 ```
 
-### Unclosed script metadata block
+### Unusable script lock data
 
-A `# /// script` marker was found but no closing `# ///` was reached
-before end of file.
-
-```text
-conda exec: warning: unclosed '# /// script' block
-```
-
-### Failed metadata parse
-
-The inline metadata block was found but contains invalid TOML.
+Discovered lock data could not be used, but the script still had metadata
+to fall back to.
 
 ```text
-conda exec: failed to parse inline metadata: <parse error>
+conda exec: warning: ignoring unusable sidecar lock data: script lock error: <detail>
 ```
+
+The lock warning can mention `embedded` instead of `sidecar`, depending on
+which source was discovered.

@@ -11,13 +11,16 @@ Run a metadata-backed script with `--lock`:
 conda exec --lock script.py
 ```
 
-conda-exec resolves the script environment, runs the script, and writes
-lock data next to the script. The default `rattler-lock-v6` format writes:
+conda-exec resolves the script environment, writes lock data next to the
+script, and runs the script. The default `rattler-lock-v6` format writes:
 
 ```text
 script.py
 script.py.conda-exec.lock
 ```
+
+conda-exec also discovers `script.conda-exec.lock` if it exists, but writes
+the `script.py.conda-exec.lock` form by default.
 
 Future runs discover the sidecar lockfile automatically:
 
@@ -27,6 +30,9 @@ conda exec script.py
 
 When lock data is available, conda-exec creates the cached environment from
 the lock instead of solving from the PEP 723 metadata.
+
+Generated lock data includes an input digest. If the script's dependency
+metadata changes, old lock data is ignored until you refresh it.
 
 If discovered lock data cannot be used for the current platform and the
 script still has metadata, conda-exec warns and falls back to solving from
@@ -97,6 +103,9 @@ Use `--ignore-lock` to ignore discovered lock data for one run:
 conda exec --ignore-lock script.py
 ```
 
+Passing `--with` or `--channel` also bypasses discovered lock data because
+those options change the dependency input for the run.
+
 ## Requirements
 
 Lock support uses conda's environment exporter and specifier plugins. The
@@ -109,5 +118,8 @@ If your conda installation cannot read or write that format, install
 `conda-lockfiles` in the environment that provides `conda exec`.
 
 ```bash
-conda install -n base conda-lockfiles
+conda install -n base -c conda-forge conda-lockfiles
 ```
+
+See [Script lock reference](../reference/script-locks.md) for sidecar
+filename discovery, embedded block syntax, digest matching, and cache keys.

@@ -22,8 +22,7 @@ YAML, with a `[tool.conda]` extension for conda-native dependencies.
 [conda/conda#2379](https://github.com/conda/conda/issues/2379) requested a
 fast way to execute commands inside existing environments without the
 overhead of `conda activate`. The discussion led to `conda run`, which
-shipped in conda 4.6 (2018). The issue was closed in October 2025 with
-`conda run` as the official solution.
+shipped in conda 4.6 (2018).
 
 conda-exec is complementary to `conda run`: while `conda run` executes
 commands in environments that already exist, conda-exec creates ephemeral
@@ -74,20 +73,17 @@ dependencies:
 # ///
 ```
 
-When both PyPI and conda dependencies are declared, all packages are
-resolved together in a single environment solve. PyPI packages are
-resolved through the [conda-pypi](https://github.com/conda/conda-pypi)
-channel, which converts PyPI wheels into conda packages so the rattler
-solver can handle both in one pass.
+When both PyPI and conda dependencies are declared, both dependency sets are
+included in one environment solve. PyPI packages are resolved through the
+[conda-pypi](https://github.com/conda/conda-pypi) channel so conda's solver
+can handle the combined input.
 
 Scripts with only `[tool.conda].dependencies` work without conda-pypi.
 Scripts with only `dependencies` (PyPI) require conda-pypi to be installed.
 
 ### Forward compatibility
 
-[PEP 725](https://peps.python.org/pep-0725/) (draft) and
-[PEP 804](https://peps.python.org/pep-0804/) (draft) are working toward
-a standardized way to declare non-PyPI dependencies (`[external]` table
-and a cross-ecosystem dependency name registry). When those PEPs are
-accepted, conda-exec can support both `[tool.conda]` and `[external]`
-simultaneously.
+[PEP 725](https://peps.python.org/pep-0725/) and
+[PEP 804](https://peps.python.org/pep-0804/) explore standardized ways to
+describe external dependencies. conda-exec uses `[tool.conda]` today
+because it is explicit, namespaced, and valid PEP 723 metadata.

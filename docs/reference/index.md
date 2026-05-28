@@ -16,6 +16,13 @@ Technical reference for conda-exec.
 Command-line interface reference.
 :::
 
+:::{grid-item-card} {octicon}`package` Package specs
+:link: package-specs
+:link-type: doc
+
+Accepted conda match specs, channels, and cache identity.
+:::
+
 :::{grid-item-card} {octicon}`file-directory` Cache layout
 :link: cache-layout
 :link-type: doc
@@ -30,6 +37,13 @@ On-disk cache structure and file layout.
 Variables that conda-exec reads, sets, and respects.
 :::
 
+:::{grid-item-card} {octicon}`terminal` Cache list JSON
+:link: list-json
+:link-type: doc
+
+Machine-readable `conda exec --list --json` output.
+:::
+
 :::{grid-item-card} {octicon}`alert` Error messages
 :link: errors
 :link-type: doc
@@ -42,6 +56,13 @@ Error conditions, messages, hints, and exit codes.
 :link-type: doc
 
 PEP 723 inline metadata for Python scripts.
+:::
+
+:::{grid-item-card} {octicon}`lock` Script locks
+:link: script-locks
+:link-type: doc
+
+Sidecar names, embedded blocks, discovery, and lock invalidation.
 :::
 
 ::::
