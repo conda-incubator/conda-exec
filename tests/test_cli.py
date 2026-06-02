@@ -6,7 +6,11 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from conda_exec.cli import execute
+from conda_exec.cli import (
+    COMPLETION_TYPE_CHANNEL,
+    COMPLETION_TYPE_PACKAGE_SPEC,
+    execute,
+)
 from conda_exec.execute import execute_run
 
 if TYPE_CHECKING:
@@ -81,6 +85,14 @@ def test_parse_with_specs(parser: ArgumentParser):
     args = parser.parse_args(["--with", "pytest", "--with", "python=3.12", "ruff"])
     assert args.with_specs == ["pytest", "python=3.12"]
     assert args.tool == "ruff"
+
+
+def test_parser_exposes_completion_metadata(parser: ArgumentParser):
+    actions = {action.dest: action for action in parser._actions}
+
+    assert actions["channels"].completion_type == COMPLETION_TYPE_CHANNEL
+    assert actions["with_specs"].completion_type == COMPLETION_TYPE_PACKAGE_SPEC
+    assert not hasattr(actions["tool"], "completion_type")
 
 
 def test_parse_lock_script(
