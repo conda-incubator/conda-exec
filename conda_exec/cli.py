@@ -11,6 +11,8 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
 SCRIPT_EXTENSIONS = {".py", ".pyw"}
+COMPLETION_TYPE_CHANNEL = "channel"
+COMPLETION_TYPE_PACKAGE_SPEC = "package_spec"
 
 
 def tool_looks_like_script(tool: str) -> bool:
@@ -61,7 +63,7 @@ def configure_parser(parser: ArgumentParser) -> None:
         help="Remove cached environments.",
     )
 
-    parser.add_argument(
+    channel_action = parser.add_argument(
         "-c",
         "--channel",
         action="append",
@@ -70,7 +72,9 @@ def configure_parser(parser: ArgumentParser) -> None:
         metavar="CHANNEL",
         help="Additional channel to search (repeatable, default: conda-forge).",
     )
-    parser.add_argument(
+    setattr(channel_action, "completion_type", COMPLETION_TYPE_CHANNEL)
+
+    with_action = parser.add_argument(
         "--with",
         action="append",
         default=None,
@@ -82,6 +86,7 @@ def configure_parser(parser: ArgumentParser) -> None:
             "Example: --with pytest --with 'python=3.12'"
         ),
     )
+    setattr(with_action, "completion_type", COMPLETION_TYPE_PACKAGE_SPEC)
     parser.add_argument(
         "--activate",
         action="store_true",
